@@ -1,0 +1,18 @@
+universe = vanilla
+
+stream_error = False
+stream_output = False
+notification = Error
+getenv = False
+
+request_memory = 3GB
+
+executable = $(SCRIPT)
+arguments = "$(PARAMS)"
+
+log    = /scratch/reimann/$(NAME)_$(cluster).condor
+output = /data/user/reimann/condor/out/$(NAME)_$(cluster).stdout
+error  = /data/user/reimann/condor/err/$(NAME)_$(cluster).stderr
+
+queue 1
+
