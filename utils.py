@@ -9,9 +9,9 @@ from scipy.stats import poisson, norm, binom, gamma
 from scipy.interpolate import UnivariateSpline
 from scipy.optimize import minimize
 from scipy.optimize import fmin_l_bfgs_b
+from scipy.special import erfinv, erf
 
 from ps_analysis.scripts.llh_functions import llh_loader
-from ps_analysis.scripts.calc_tools import deltaPsi, llh2Sigma
 from ps_analysis.scripts.stager import FileStager
 
 try:
@@ -102,6 +102,54 @@ def poisson_weight(vals, mean, weights=None):
     w = w[np.searchsorted(np.arange(n_max), vals)]
 
     return w * weights
+
+def llh2Sigma(llh, dof, alreadyTimes2=False, oneSided=False):
+    llh = np.atleast_1d(llh)
+    if np.any(llh < 0): raise ValueError(  "Can not calculate the significance for a negative value of llh!"  )
+    if not alreadyTimes2:   dLlhTimes2 = llh*2.0
+    else:                   dLlhTimes2 = llh
+    return pval2Sigma(  chiSquaredVal2pVal(dLlhTimes2, dof), oneSided  )
+
+def pval2Sigma(pval, oneSided=False):
+    if oneSided: pval *= 2.0 # usually not done one-sided
+    sigma = erfinv(1.0 - pval)*np.sqrt(2)
+    return sigma
+
+def deltaPsi(dec1, ra1, dec2, ra2):
+    """
+    Calculate angular distance.
+    
+    Args:
+>------->-------dec1: Declination of first direction in radian
+>------->-------ra1: Right ascension of first direction in radian
+>------->-------dec2: Declination of second direction in radian
+>------->-------ra2: Right ascension of second direction in radian
+>------->-------
+>-------Returns angular distance in radian
+    """
+    return deltaPsi2(np.sin(dec1), np.cos(dec1), np.sin(ra1), np.cos(ra1), np.sin(dec2), np.cos(dec2), np.sin(ra2), np.cos(ra2))
+
+
+def deltaPsi2(sDec1, cDec1, sRa1, cRa1, sDec2, cDec2, sRa2, cRa2):
+    """
+    Calculate angular distance.
+    
+    Args:
+>------->-------sDec1: sin(Declination of first direction)
+>------->-------cDec1: cos(Declination of first direction)
+>------->-------sRa1: sin(Right ascension of first direction)
+>------->-------cRa1: cos(Right ascension of first direction)
+>------->-------sDec2: sin(Declination of second direction)
+>------->-------cDec2: cos(Declination of second direction)
+>------->-------sRa2: sin(Right ascension of second direction)
+>------->-------cRa2: cos(Right ascension of second direction)
+>------->-------
+>-------Returns angular distance in radian
+    """
+    tmp = cDec1*cRa1*cDec2*cRa2 + cDec1*sRa1*cDec2*sRa2 + sDec1*sDec2
+    tmp[tmp>1.] = 1.
+    tmp[tmp<-1.] = -1.
+    return np.arccos(tmp)
 
 
 def get_spots(p_map, cutoff_pval=3):
