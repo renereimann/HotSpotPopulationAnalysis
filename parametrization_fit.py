@@ -6,7 +6,6 @@ from scipy.optimize import curve_fit, minimize
 from scipy.interpolate import UnivariateSpline
 import glob, os, cPickle, collections
 
-from ps_analysis.scripts.stager import FileStager
 import ps_analysis
 
 class templ_fit:
@@ -349,8 +348,8 @@ class pVal_calc():
     _fit_dict = None
     
     def __init__(self, fit_dict):
-        if type(fit_dict) is str and FileStager.exists(fit_dict):
-            with FileStager(fit_dict, "r") as open_file:
+        if type(fit_dict) is str and os.path.exists(fit_dict):
+            with open(fit_dict, "r") as open_file:
                 fit_dict = cPickle.load(open_file)
         if not type(fit_dict) is dict:
             raise IOError("We need a dict for the pVal_calc class. Either you give the dict directly or you give the path from which to load.")
@@ -503,12 +502,12 @@ class pVal_calc_trials(pVal_calc):
             raise NotImplementedError("There are no other options implemented!")
     
     def _load(self, load_file):
-        with FileStager(load_file, "r") as open_file:
+        with open(load_file, "r") as open_file:
             self._trials = cPickle.load(open_file)
         self._decs = np.array(sorted(self._trials.keys()))
         
     def save(self, save_file):
-        with FileStager(save_file, "w") as open_file:
+        with open(save_file, "w") as open_file:
             cPickle.dump(self._trials, open_file, protocol=2)
     
     def _load_trials(self, files):
@@ -529,7 +528,7 @@ class pVal_calc_trials(pVal_calc):
             
             if not dec in trials.keys(): trials[dec] = []
             
-            with FileStager(f, "r") as open_file:
+            with open(f, "r") as open_file:
                 tmp = cPickle.load(open_file)
             trials[dec].append( tmp["TS"][:] )
             del tmp
@@ -544,7 +543,7 @@ class pVal_calc_trials(pVal_calc):
         
     def _load_for_cat(self, load_for_cat, skip_bad):
         
-        if not FileStager.exists(load_for_cat):
+        if not os.path.exists(load_for_cat):
             raise IOError("load_for_cat directory does not exist. {load_for_cat}".format(**locals()))
         
         with open(os.path.join(os.path.dirname(ps_analysis.__file__), "catalog/source_list_dummy.pickle"), "r") as open_file:
@@ -554,7 +553,7 @@ class pVal_calc_trials(pVal_calc):
     
         for dec in catalog["dec"]:
             ts_val_path = os.path.join(load_for_cat, "dec_{dec}/combined_TSValues.pickle".format(**locals()))
-            if not FileStager.exists(ts_val_path):
+            if not os.path.exists(ts_val_path):
                 decs = np.array([float(os.path.basename(f)[4:]) for f in sorted(glob.glob(os.path.join(load_for_cat, "dec_*")))])
                 if any(decs - dec < 1e-7):
                     print "Warn did not match exactly, numeric difference < 1e-7"
@@ -564,7 +563,7 @@ class pVal_calc_trials(pVal_calc):
                     if skip_bad: continue
                     raise IOError("combined_TSValues not found for declination {dec}".format(**locals()))
             
-            with FileStager(ts_val_path, "r") as open_file:
+            with open(ts_val_path, "r") as open_file:
                 trials[dec] = cPickle.load(open_file)
                 
         self._trials = trials
