@@ -12,7 +12,9 @@ from scipy.optimize import fmin_l_bfgs_b
 from scipy.special import erfinv, erf
 
 from ps_analysis.scripts.llh_functions import llh_loader
-from ps_analysis.scripts.stager import FileStager
+
+from .statistics import poisson_percentile, poisson_weight
+from .statistics import llh2Sigma, pval2Sigma
 
 try:
     from ps_analysis.plotting.hpa import counts_above_plot, gamma_fit_to_histogram, gamma_fit_contour, gamma_fit_survival_plot
@@ -20,137 +22,32 @@ except:
     pass
 from SourceUniverse.SourceUniverse import SourceCountDistribution
 
-def poisson_percentile(mu, x, y, yval):
-    r"""Calculate upper percentile using a Poisson distribution.
-
+def deltaPsi(dec1, ra1, dec2, ra2):
+    """Calculate angular distance between two directions.
+    
     Parameters
     ----------
-    mu : float
-        Mean value of Poisson distribution
-    x : array_like,
-        Trials of variable that is expected to be Poisson distributed
-    y : array_like
-        Observed variable connected to `x`
-    yval : float
-        Value to calculate the percentile at
-
-    Returns
-    -------
-    score : float
-        Value at percentile *alpha*
-    err : float
-        Uncertainty on `score`
-
-    """
-    x = np.asarray(x, dtype=np.int)
-    y = np.asarray(y, dtype=np.float)
-
-    w = poisson_weight(x, mu)
-
-    # Get percentile at yval.
-    m = y > yval
-    u = np.sum(w[m], dtype=np.float)
-
-    if u == 0.:
-        return 1., 1.
-
-    err = np.sqrt(np.sum(w[m]**2)) / np.sum(w)
-
-    return u / np.sum(w, dtype=np.float), err
-
-def poisson_weight(vals, mean, weights=None):
-    r"""Calculate weights for a sample that it resembles a Poisson.
-
-    Parameters
-    ----------
-    vals : array_like
-        Random integers to be weighted
-    mean : float
-        Poisson mean
-    weights : array_like, optional
-        Weights for each event
+    dec1: float, array_like
+        Declination of first direction. Units: radian
+    ra1: float, array_like
+        Right ascension of first direction. Units: radian
+    dec2: float, array_like
+        Declination of second direction. Units: radian
+    ra2: float, array_like
+        Right ascension of second direction. Units: radian
 
     Returns
     -------
     ndarray
-        Weights for each event
-
+        Angular distance. Units: radian
     """
-    mean = float(mean)
-    vals = np.asarray(vals, dtype=np.int)
 
-    if weights is None:
-        weights = np.ones_like(vals, dtype=np.float)
-
-    # Get occurences of integers.
-    bincount = np.bincount(vals, weights=weights)
-
-    n_max = len(bincount)
-
-    # Get poisson probability.
-    if mean > 0:
-        p = scipy.stats.poisson(mean).pmf(range(n_max))
-    else:
-        p = np.zeros(n_max, dtype=np.float)
-        p[0] = 1.
-
-    # Weights for each integer
-    w = np.zeros_like(bincount, dtype=np.float)
-    m = bincount > 0
-    w[m] = p[m] / bincount[m]
-
-    w = w[np.searchsorted(np.arange(n_max), vals)]
-
-    return w * weights
-
-def llh2Sigma(llh, dof, alreadyTimes2=False, oneSided=False):
-    llh = np.atleast_1d(llh)
-    if np.any(llh < 0): raise ValueError(  "Can not calculate the significance for a negative value of llh!"  )
-    if not alreadyTimes2:   dLlhTimes2 = llh*2.0
-    else:                   dLlhTimes2 = llh
-    return pval2Sigma(  chiSquaredVal2pVal(dLlhTimes2, dof), oneSided  )
-
-def pval2Sigma(pval, oneSided=False):
-    if oneSided: pval *= 2.0 # usually not done one-sided
-    sigma = erfinv(1.0 - pval)*np.sqrt(2)
-    return sigma
-
-def deltaPsi(dec1, ra1, dec2, ra2):
-    """
-    Calculate angular distance.
-    
-    Args:
->------->-------dec1: Declination of first direction in radian
->------->-------ra1: Right ascension of first direction in radian
->------->-------dec2: Declination of second direction in radian
->------->-------ra2: Right ascension of second direction in radian
->------->-------
->-------Returns angular distance in radian
-    """
-    return deltaPsi2(np.sin(dec1), np.cos(dec1), np.sin(ra1), np.cos(ra1), np.sin(dec2), np.cos(dec2), np.sin(ra2), np.cos(ra2))
-
-
-def deltaPsi2(sDec1, cDec1, sRa1, cRa1, sDec2, cDec2, sRa2, cRa2):
-    """
-    Calculate angular distance.
-    
-    Args:
->------->-------sDec1: sin(Declination of first direction)
->------->-------cDec1: cos(Declination of first direction)
->------->-------sRa1: sin(Right ascension of first direction)
->------->-------cRa1: cos(Right ascension of first direction)
->------->-------sDec2: sin(Declination of second direction)
->------->-------cDec2: cos(Declination of second direction)
->------->-------sRa2: sin(Right ascension of second direction)
->------->-------cRa2: cos(Right ascension of second direction)
->------->-------
->-------Returns angular distance in radian
-    """
-    tmp = cDec1*cRa1*cDec2*cRa2 + cDec1*sRa1*cDec2*sRa2 + sDec1*sDec2
-    tmp[tmp>1.] = 1.
-    tmp[tmp<-1.] = -1.
-    return np.arccos(tmp)
-
+    cDec1 = np.cos(dec1) 
+    cDec2 = np.cos(dec2)
+    cosTheta = cDec1*np.cos(ra1)*cDec2*np.cos(ra2) + cDec1*np.sin(ra1)*cDec2*np.sin(ra2) + np.sin(dec1)*np.sin(dec2)
+    cosTheta[cosTheta>1.] = 1.
+    cosTheta[cosTheta<-1.] = -1.
+    return np.arccos(cosTheta)
 
 def get_spots(p_map, cutoff_pval=3):
     """ extract local warm spots from a p-value skymap.
@@ -227,7 +124,7 @@ def get_all_sky_trials(glob_path, min_ang_dist=1.):
      
     trials = [] 
     for path in glob.glob(glob_path):
-        with FileStager(path, "r") as open_file:
+        with open(path, "r") as open_file:
             temp = cPickle.load(open_file)
         trials.extend(temp)
     print "Read in %d files"%len(trials)
@@ -254,7 +151,7 @@ def make_gamma_fit(read_path, verbose=False,
                    plot_hist=True, plot_path_hist=None, 
                    plot_contour=True, plot_path_contour=None, 
                    plot_survival=True, plot_path_survival=None, label=None):
-    with FileStager(read_path, "r") as read_file:
+    with open(read_path, "r") as read_file:
         trials = cPickle.load(read_file)
     
     params = gamma.fit(trials, floc=0)
@@ -341,15 +238,15 @@ class expectation(object):
     
     def __init__(self, path):
         # read in expectation spline
-        if not FileStager.exists(path):
+        if not os.path.exists(path):
             raise ValueError("You try to load a spline from a path that does not exist. You specified: {path}".format(**locals()))
-        with FileStager(path, "r") as open_file:
+        with open(path, "r") as open_file:
             self.spl = cPickle.load(open_file)
         try:
             self.spl(10.)
         except:
             print("Backup solution")
-            with FileStager(path.replace("spline_expectation", "parametrization_expectiation"), "r") as open_file:
+            with open(path.replace("spline_expectation", "parametrization_expectiation"), "r") as open_file:
                 parametrization = cPickle.load(open_file)
             self.spl = UnivariateSpline(parametrization[:,0], np.log10(parametrization[:,1]+1e-20), s=0, k=1)    
         
@@ -464,8 +361,8 @@ class background_pool(object):
         return self.random.choice(self.bgd_pool, nspots, replace=False)
     
     def load(self, load_path, seed=None):
-        if not FileStager.exists(load_path): raise IOError("load_path does not exist {load_path}".format(**locals()))
-        with FileStager(load_path, "r") as open_file:
+        if not os.path.exists(load_path): raise IOError("load_path does not exist {load_path}".format(**locals()))
+        with open(load_path, "r") as open_file:
             state = cPickle.load(open_file)
          
         self.min_ang_dist = state["min_ang_dist"]
@@ -497,7 +394,7 @@ class background_pool(object):
         else: 
             state["min_threshold"]   = self.min_threshold
         
-        with FileStager(save_path, "w") as open_file:
+        with open(save_path, "w") as open_file:
             cPickle.dump(state, open_file)
     
 class signal_pool(object):
@@ -587,9 +484,9 @@ class signal_pool(object):
         """ Read in file and return declinationa flux2mu factor and trial-array with "n_inj", "TS" 
         Raises if file does not exist.
         """
-        if not FileStager.exists(path):
+        if not os.path.exists(path):
             raise ValueError("Could not load signal trials, because file does not exist.\nYou specified {path}".format(**locals()))
-        with FileStager(path) as open_file:
+        with open(path) as open_file:
             job_args, trials = cPickle.load(open_file)
         dec_key    = trials.keys()[0]
         mu         = np.mean(trials[dec_key][0]["mu"]) 
@@ -601,9 +498,9 @@ class signal_pool(object):
         """ Read in file and return declinationa flux2mu factor and trial-array with "n_inj", "TS" 
         Raises if file does not exist.
         """
-        if not FileStager.exists(path):
+        if not os.path.exists(path):
             raise ValueError("Could not load signal trials, because file does not exist.\nYou specified {path}".format(**locals()))
-        with FileStager(path) as open_file:
+        with open(path) as open_file:
             job_args, trials = cPickle.load(open_file)
         
         return trials[["n_inj", "TS"]]
@@ -664,14 +561,14 @@ class signal_pool(object):
         state["declinations"] = self.declinations
         state["flux"]         = self.flux
         state["mu"]           = self.mu
-        with FileStager(save_path, "w") as open_file:
+        with open(save_path, "w") as open_file:
             cPickle.dump(state, open_file, protocol=2)
       
     def load(self, load_path, **kwargs):
         """ Loads signal pool from file,
         you can set in addition the seed"""
-        if not FileStager.exists(load_path): raise IOError("Inpath does not exist. {load_path}".format(**locals()))
-        with FileStager(load_path, "r") as open_file:
+        if not os.path.exists(load_path): raise IOError("Inpath does not exist. {load_path}".format(**locals()))
+        with open(load_path, "r") as open_file:
             state = cPickle.load(open_file) 
         self.flux_2_mu    = state["flux_2_mu"]
         self.injects      = state["injects"]
@@ -929,7 +826,7 @@ def get_data_for_nsrc(nsrc, glob_path):
                               ("exp", np.float)])
 
     for f in files:
-        with FileStager(f, "r") as open_file:    
+        with open(f, "r") as open_file:    
             temp = np.load(open_file)
 
         #isStructArrayWith(temp, "loaded signal trials (temp)", data.dtype.names)
