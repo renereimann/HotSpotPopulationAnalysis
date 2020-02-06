@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import cPickle, glob, os, argparse, healpy
+import cPickle, glob, os, argparse
 from ps_analysis.hpa.utils import get_spots
 
 parser = argparse.ArgumentParser()
