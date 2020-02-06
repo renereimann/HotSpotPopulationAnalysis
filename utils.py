@@ -5,11 +5,10 @@ import cPickle, glob, os, copy, re, healpy, argparse
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from scipy import stats
-from scipy.stats import poisson, norm, binom, gamma
+from scipy.stats import poisson, binom, gamma
 from scipy.interpolate import UnivariateSpline
 from scipy.optimize import minimize
 from scipy.optimize import fmin_l_bfgs_b
-from scipy.special import erfinv, erf
 
 from ps_analysis.scripts.llh_functions import llh_loader
 
@@ -707,44 +706,41 @@ class signal_trials(object):
         if (self.count+1) % ping_each == 0: print("Finished %d"%(self.count+1))
         self.count += 1
         
-def get_mu_2_flux_factor(season, sinHem, spectral_index=2.):
-    """ Returns the conversion factor from mu to flux.
-    
-    Parameters:
-        - season: name of seasons
-        - sinHem: float, that gives the boarder of the hemisphere
-        - spectral_index: float, give the spectral index of the flux that should be converted to
-    Returns:
-        ConversionFactor: Float
+def get_mu_2_flux_factor(season, sinHem=np.sin(np.radians(-5)), spectral_index=2.):
+    """ Calculates the conversion factor from mu to flux for a given spectral index and sample.
+
+    Parameters
+    ----------
+    season: string
+        Not used. Remove any dependency on that. Just keep it for now so that we do not break everything.
+    sinHem: float, default sin(5 deg)
+        sin of the declination of the boarder of the hemisphere considered
+    spectral_index: float, default 2
+        spectral index of the power law flux that is considered.
+
+    Returns
+    -------
+    float
+        mu -> flux conversion factor
     """
-    
-    # first get mc via llh object
-    # we can use any model because we just need the MC which just depend on season
-    # combine all mc samples to one array
-    loader = llh_loader()
-    args = llh_loader.get_argparser().parse_args(["--model", "energy", "--season", season])
-    llh = loader.get_llh(args)
-    mc = []
-    for samp, livetime in zip(llh.mc.itervalues(), llh.livetime.itervalues()):
-        samp["ow"] *= livetime
-        mc.append(samp)
-    mc = np.concatenate(mc)
-    del llh
-    
-    assert type(mc) == np.ndarray, "mc is not a structured array. Its type is {}".format(type(mc))
-    assert "ow"    in mc.dtype.names, "mc is not a complet MC structured array, ow is missing. mc contains {}".format(mc.dtype.names)
-    assert "trueE" in mc.dtype.names, "mc is not a complet MC structured array, trueE is missing. mc contains {}".format(mc.dtype.names)
-    assert "dec"   in mc.dtype.names, "mc is not a complet MC structured array, dec is missing. mc contains {}".format(mc.dtype.names)
-    assert type(sinHem) in [float, np.float64] , "sinHem is not a float. Its tpye is {}".format(type(sinHem))
-    assert sinHem < 1 and sinHem > -1, "sinHem is not in the range -1 to 1. It is {}".format(sinHem)
-    assert type(spectral_index) in [float, np.float64], "spectral_index is not a float. Its type is {}".format(type(spectral_index))
-    
-    weights = mc["ow"] * mc["trueE"]**(-np.abs(spectral_index))
-    mask_hem = mc["dec"] > np.arcsin(sinHem)
+
+    version_path = "/data/ana/analyses/northern_tracks/version-002-p06/"
+    season_list = [("dataset_8yr_fit_IC59_MC_compressed.npy",        "GRL/dataset_8yr_fit_IC59_exp_compressed.npy"),
+                  ("dataset_8yr_fit_IC79_MC_compressed.npy",         "GRL/dataset_8yr_fit_IC79_exp_compressed.npy"),
+                  ("dataset_8yr_fit_IC86_2011_MC_compressed.npy",    "GRL/dataset_8yr_fit_IC86_2011_exp_compressed.npy"),
+                  ("dataset_8yr_fit_IC86_2012_16_MC_compressed.npy", "GRL/dataset_8yr_fit_IC86_2012_16_exp_compressed.npy"),]
+
+    denominator = 0
+    for mc_path, grl_path in enumerate(season_list):
+        mc = np.load(os.path.join(version_path, mc_path))
+        grl = np.load(os.path.join(version_path, grl_path))
+        livetime = np.sum(grl["livetime"])
+        
+        weight = mc["ow"]*livetime*mc["trueE"]**(-np.abs(spectral_index))
+        mask = mc["dec"] > np.arcsin(sinHem)
+        denominator += np.sum(weight[mask])
 
     solAng = 2. * np.pi * (1. - sinHem)
-    denominator = weights[mask_hem].sum()
-    
     return solAng/denominator
     
 def get_mu2flux_from_sens_files(glob_path):
