@@ -1,20 +1,18 @@
 #!/usr/bin/env python
 
-import matplotlib
-matplotlib.use("Agg")
 import numpy as np
 import cPickle, os, argparse
 from scipy.interpolate import UnivariateSpline
-from ps_analysis.hpa.utils import get_all_sky_trials, counts_above_pval
+from utils import get_all_sky_trials, counts_above_pval
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--indir",
                     type=str,
-                    required=True,
+                    default="./test_data/extracted_background_populations/",
                     help="Give inpath.")
 parser.add_argument("--outdir",
                     type=str,
-                    required=True,
+                    default="test_data/from_poisson_test/",
                     help="Give outpath.")
 parser.add_argument("--cutoff",
                     type=float,
@@ -35,6 +33,7 @@ args = parser.parse_args()
 
 # read in stuff
 glob_path    = os.path.join(args.indir, "all_sky_population_bgd_trials_cutoff_pVal_{args.cutoff}_seed_*X.pickle".format(**locals()))
+
 trials = get_all_sky_trials(glob_path, min_ang_dist=args.min_ang_dist)    
 
 # test poissonian distribution
