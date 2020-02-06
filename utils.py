@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import matplotlib.pyplot as plt
-import cPickle, glob, os, copy, re, healpy, argparse
+import cPickle, glob, os, copy, re, argparse
+import healpy
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from scipy import stats
@@ -10,16 +11,17 @@ from scipy.interpolate import UnivariateSpline
 from scipy.optimize import minimize
 from scipy.optimize import fmin_l_bfgs_b
 
-from ps_analysis.scripts.llh_functions import llh_loader
-
-from .statistics import poisson_percentile, poisson_weight
-from .statistics import llh2Sigma, pval2Sigma
+from statistics import poisson_percentile, poisson_weight
+from statistics import llh2Sigma, pval2Sigma
 
 try:
     from ps_analysis.plotting.hpa import counts_above_plot, gamma_fit_to_histogram, gamma_fit_contour, gamma_fit_survival_plot
 except:
     pass
-from SourceUniverse.SourceUniverse import SourceCountDistribution
+try:
+    from SourceUniverse.SourceUniverse import SourceCountDistribution
+except:
+    pass
 
 def deltaPsi(dec1, ra1, dec2, ra2):
     """Calculate angular distance between two directions.
