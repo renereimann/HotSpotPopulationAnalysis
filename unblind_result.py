@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-import matplotlib
-matplotlib.use("agg")
-import sys
-sys.path.insert(1, "/data/user/reimann/grid_software/")
 from ps_analysis.hpa.utils import expectation, get_spots
 from ps_analysis.scripts.calc_tools import deltaPsi
 import cPickle

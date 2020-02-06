@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-import sys, cPickle, os, argparse, time
+import cPickle, os, argparse, time
 import numpy as np
-import matplotlib.pyplot as plt
-from ps_analysis.scripts.stager import FileStager
 from ps_analysis.scripts.parametrization_fit import pVal_calc
 from ps_analysis.hpa.utils import expectation, background_pool, signal_pool_SourceUnivers, signal_trials 
 
@@ -105,11 +103,11 @@ out.clean_nans()
 # save stuff
 print("Save results")
 source_universe_config = ".".join(os.path.basename(args.infile_source_universe).split(".")[:-1])
-with FileStager(os.path.join(args.outdir,"HPA_source_universe_signal_trials_{source_universe_config}_density_{args.density}_seed_{args.seed}.npy".format(**locals())), "w") as open_file:
+with open(os.path.join(args.outdir,"HPA_source_universe_signal_trials_{source_universe_config}_density_{args.density}_seed_{args.seed}.npy".format(**locals())), "w") as open_file:
     np.save(open_file, out.trials)
-with FileStager(os.path.join(args.outdir,"HPA_source_universe_signal_trials_{source_universe_config}_density_{args.density}_seed_{args.seed}.args".format(**locals())), "w") as open_file:
+with open(os.path.join(args.outdir,"HPA_source_universe_signal_trials_{source_universe_config}_density_{args.density}_seed_{args.seed}.args".format(**locals())), "w") as open_file:
     cPickle.dump(args, open_file)
-with FileStager(os.path.join(args.outdir,"HPA_source_universe_hottest_source_{source_universe_config}_density_{args.density}_seed_{args.seed}.cPickle".format(**locals())), "w") as open_file:
+with open(os.path.join(args.outdir,"HPA_source_universe_hottest_source_{source_universe_config}_density_{args.density}_seed_{args.seed}.cPickle".format(**locals())), "w") as open_file:
     cPickle.dump(hottest_source, open_file, protocol=2)
-with FileStager(os.path.join(args.outdir,"HPA_source_universe_n_above_{source_universe_config}_density_{args.density}_seed_{args.seed}.cPickle".format(**locals())), "w") as open_file:
+with open(os.path.join(args.outdir,"HPA_source_universe_n_above_{source_universe_config}_density_{args.density}_seed_{args.seed}.cPickle".format(**locals())), "w") as open_file:
     cPickle.dump(n_above, open_file, protocol=2)

@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-import sys, cPickle, os, argparse
+import cPickle, os, argparse
 import numpy as np
-import matplotlib.pyplot as plt
-from ps_analysis.scripts.stager import FileStager
 from ps_analysis.scripts.parametrization_fit import pVal_calc
 from ps_analysis.hpa.utils import job_num_2_nsrc_ninj_nsrcIdx, expectation, background_pool, signal_pool, signal_trials
 
@@ -87,7 +85,7 @@ out.clean_nans()
 # save stuff
 # srcIdx can be converted to n_inj but n_inj is a float and not so nice for file name
 print("Save results")
-with FileStager(os.path.join(args.outdir,"HPA_signal_trials_nsrc_{nsrc:08d}_nsrcIdx_{nsrcIdx:08d}.npy".format(**locals())), "w") as open_file:
+with os(os.path.join(args.outdir,"HPA_signal_trials_nsrc_{nsrc:08d}_nsrcIdx_{nsrcIdx:08d}.npy".format(**locals())), "w") as open_file:
     np.save(open_file, out.trials)
-with FileStager(os.path.join(args.outdir,"HPA_signal_trials_nsrc_{nsrc:08d}_nsrcIdx_{nsrcIdx:08d}.args".format(**locals())), "w") as open_file:
+with os(os.path.join(args.outdir,"HPA_signal_trials_nsrc_{nsrc:08d}_nsrcIdx_{nsrcIdx:08d}.args".format(**locals())), "w") as open_file:
     cPickle.dump(args, open_file)

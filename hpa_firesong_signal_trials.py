@@ -2,8 +2,6 @@
 
 import sys, cPickle, os, argparse
 import numpy as np
-import matplotlib.pyplot as plt
-from ps_analysis.scripts.stager import FileStager
 from ps_analysis.scripts.parametrization_fit import pVal_calc
 from ps_analysis.hpa.utils import expectation, background_pool, signal_pool_FIRESONG, signal_trials 
 
@@ -96,7 +94,7 @@ out.clean_nans()
 # save stuff
 print("Save results")
 firesong_config = ".".join(os.path.basename(args.infile_firesong).split(".")[:-1])
-with FileStager(os.path.join(args.outdir,"HPA_firesong_signal_trials_{firesong_config}_seed_{args.seed}.npy".format(**locals())), "w") as open_file:
+with open(os.path.join(args.outdir,"HPA_firesong_signal_trials_{firesong_config}_seed_{args.seed}.npy".format(**locals())), "w") as open_file:
     np.save(open_file, out.trials)
-with FileStager(os.path.join(args.outdir,"HPA_firesong_signal_trials_{firesong_config}_seed_{args.seed}.args".format(**locals())), "w") as open_file:
+with open(os.path.join(args.outdir,"HPA_firesong_signal_trials_{firesong_config}_seed_{args.seed}.args".format(**locals())), "w") as open_file:
     cPickle.dump(args, open_file)

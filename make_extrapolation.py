@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import matplotlib
-matplotlib.use("agg")
 import os, cPickle, argparse
 from ps_analysis.hpa.utils import make_gamma_fit 
 

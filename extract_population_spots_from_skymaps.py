@@ -3,7 +3,6 @@
 import numpy as np
 import cPickle, glob, os, argparse, healpy
 from ps_analysis.hpa.utils import get_spots
-from ps_analysis.scripts.stager import FileStager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--indir",
@@ -34,7 +33,7 @@ spots_trials = []
 for fName in files:
     # get skymap
     print "Now do", os.path.basename(fName)
-    with FileStager(fName, "r") as open_file:
+    with open(fName, "r") as open_file:
         job_args, scan = cPickle.load(open_file)
     pvalues = scan[0]["pVal"]
     
@@ -47,5 +46,5 @@ for fName in files:
     spots_trials.append(spots)
 
 # write output
-with FileStager(os.path.join(args.outdir, "all_sky_population_bgd_trials_cutoff_pVal_{args.cutoff}_seed_{args.number}X.pickle".format(**locals())), "w") as open_file:
+with open(os.path.join(args.outdir, "all_sky_population_bgd_trials_cutoff_pVal_{args.cutoff}_seed_{args.number}X.pickle".format(**locals())), "w") as open_file:
     cPickle.dump(spots_trials, open_file, protocol=2)
