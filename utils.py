@@ -51,8 +51,20 @@ def deltaPsi(dec1, ra1, dec2, ra2):
     return np.arccos(cosTheta)
 
 def get_spots(p_map, cutoff_pval=3):
-    """ extract local warm spots from a p-value skymap.
-    Returns list of pVal, theta, phi values
+    r"""Extract local warm spots from a p-value skymap.
+
+    Parameters
+    ----------
+    p_map: array_like
+        List of p-values. A healpy skymap is expected.
+    cutoff_pval: float, default=3
+        Threshold on log10(p-value), above local warm spots should be considered.
+
+    Returns
+    -------
+    ndarry ("theta":float, "phi": float, "pVal": float)
+        List of local warm spots. Each warm spot is described by a tuple (theta, phi, p-value)
+
     """
     
     # get npix and nside
