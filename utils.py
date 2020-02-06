@@ -2,7 +2,11 @@
 
 import matplotlib.pyplot as plt
 import cPickle, glob, os, copy, re, argparse
-import healpy
+try:
+    import healpy
+except:
+    pass
+
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from scipy import stats
