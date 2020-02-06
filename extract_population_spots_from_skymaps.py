@@ -1,22 +1,21 @@
 #!/usr/bin/env python
 
+import argparse
+import os
+import cPickle
 import numpy as np
-import cPickle, glob, os, argparse
-from ps_analysis.hpa.utils import get_spots
+from utils import get_spots
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--indir",
+parser.add_argument("--infiles",
                     type=str,
-                    required=True,
+                    nargs='+',
+                    default=["test_data/all_sky_scans_background/all_sky_scan_trial_iter2_skylab_sens_model_MCLLH3_season_IC_8yr_bestfit_spline_bin_mod_dec_2_spline_bin_mod_ener_2_prior_2.19_0.1_negTS_V2_inject_2.0_nside_256_followup_1_pseudo_experiment_3010_seed_3010.pickle", "test_data/all_sky_scans_background/all_sky_scan_trial_iter2_skylab_sens_model_MCLLH3_season_IC_8yr_bestfit_spline_bin_mod_dec_2_spline_bin_mod_ener_2_prior_2.19_0.1_negTS_V2_inject_2.0_nside_256_followup_1_pseudo_experiment_3011_seed_3011.pickle"],
                     help="Give inpath.")
-parser.add_argument("--outdir",
+parser.add_argument("--outfile",
                     type=str,
-                    required=True,
+                    default="test_data/extracted_background_populations/",
                     help="Give outpath.")
-parser.add_argument("--number",
-                    type=int,
-                    required=True,
-                    help="Give the digits except the last of seed numbers.")
 parser.add_argument("--cutoff",
                     type=float,
                     required=False,
@@ -24,13 +23,12 @@ parser.add_argument("--cutoff",
                     help="Give the -log10(p-value) above that spots should not be considerd. Default: 3.0.")
 args = parser.parse_args()
 
-if args.number == 0:
-    files = sorted(glob.glob(os.path.join(args.indir, "all_sky_scan_trial_iter2_*_seed_?.pickle")))
-else:
-    files = sorted(glob.glob(os.path.join(args.indir, "all_sky_scan_trial_iter2_*_seed_{}?.pickle".format(args.number))))
-    
+print "Run", os.path.realpath(__file__)
+print "Use arguments:", args
+print
+
 spots_trials = []
-for fName in files:
+for fName in args.infiles:
     # get skymap
     print "Now do", os.path.basename(fName)
     with open(fName, "r") as open_file:
@@ -46,5 +44,5 @@ for fName in files:
     spots_trials.append(spots)
 
 # write output
-with open(os.path.join(args.outdir, "all_sky_population_bgd_trials_cutoff_pVal_{args.cutoff}_seed_{args.number}X.pickle".format(**locals())), "w") as open_file:
+with open(args.outfile, "w") as open_file:
     cPickle.dump(spots_trials, open_file, protocol=2)
