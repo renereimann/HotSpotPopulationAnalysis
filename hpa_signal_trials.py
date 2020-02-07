@@ -2,7 +2,7 @@
 
 import cPickle, os, argparse
 import numpy as np
-from ps_analysis.hpa.utils import job_num_2_nsrc_ninj_nsrcIdx, expectation, background_pool, signal_pool, signal_trials
+from ps_analysis.hpa.utils import expectation, background_pool, signal_pool, signal_trials
 
 # get arguments
 parser = argparse.ArgumentParser()
@@ -37,7 +37,18 @@ args = parser.parse_args()
 
 for k, v in args._get_kwargs():
     print "%15s"%k, v
-        
+
+def job_num_2_nsrc_ninj_nsrcIdx(job_num):
+    """ Convert a job number to number of sources 
+    and number of injected events"""
+    
+    k = 2
+    j, i = divmod(job_num // k, 50)
+    nsrc = 2**j
+    n_inj = float((i + 1)**2) / nsrc
+    
+    return nsrc, n_inj, i
+    
 nsrc, n_inj, nsrcIdx = job_num_2_nsrc_ninj_nsrcIdx(args.config_id)    
 print("Job number: {0:d}".format(args.config_id))
 print("Number of sources for estimation: {0:d}".format(nsrc))

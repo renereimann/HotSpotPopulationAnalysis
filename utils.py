@@ -238,17 +238,6 @@ def make_gamma_fit(read_path, verbose=False,
         curr_plot.plot(savepath=plot_path_survival)
             
     return {"params": params, "ks_pval": ks_gamma, "median": (median, (median_lower, median_upper)), "3sig": (ext_3sig, (lower_3sig, upper_3sig)), "5sig": (ext_5sig, (lower_5sig, upper_5sig))}
-
-def job_num_2_nsrc_ninj_nsrcIdx(job_num):
-    """ Convert a job number to number of sources 
-    and number of injected events"""
-    
-    k = 2
-    j, i = divmod(job_num // k, 50)
-    nsrc = 2**j
-    n_inj = float((i + 1)**2) / nsrc
-    
-    return nsrc, n_inj, i
     
 class expectation(object):
     
