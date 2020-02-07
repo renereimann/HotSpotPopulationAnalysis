@@ -2,7 +2,6 @@
 
 import cPickle, os, argparse
 import numpy as np
-from ps_analysis.scripts.parametrization_fit import pVal_calc
 from ps_analysis.hpa.utils import job_num_2_nsrc_ninj_nsrcIdx, expectation, background_pool, signal_pool, signal_trials
 
 # get arguments
