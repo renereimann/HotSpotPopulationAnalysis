@@ -43,3 +43,14 @@ TS_parametrization_NDoF = get_splined("TS_parametrization_NDoF_Stefan.txt", name
 limit_E2 = get_splined("Sensitivity_E_2_7yr_PS_paper.txt", names=["sinDec", "flux"])
 sensitivity_E3 = get_splined("Sensitivity_E_3_7yr_PS_paper.txt", names=["sinDec", "flux"])
 discovery_potential_E3 = get_splined("DiscPot_E_3_7yr_PS_paper.txt", names=["sinDec", "flux"])
+
+# flux_north.txt
+
+spline_stefan_wiki_naive = get_splined("HPA_7yr_wiki_naive_expectation.txt", names=["nSources", "flux_per_source"])
+spline_stefan_wiki_sens =  get_splined("HPA_7yr_wiki_sensitivity.txt", names=["nSources", "flux_per_source"])
+spline_stefan_wiki_disc = get_splined("HPA_7yr_wiki_disc_pot.txt", names=["nSources", "flux_per_source"])
+spline_stefan_paper_sens =  get_splined("HPA_7yr_paper_sensitivity.txt", names=["nSources", "flux_per_source"])
+spline_stefan_paper_limit =  get_splined("HPA_7yr_paper_UL.txt", names=["nSources", "flux_per_source"])
+spline_stefan_paper_disc =  get_splined("HPA_7yr_paper_disc_pot.txt", names=["nSources", "flux_per_source"])
+spline_theo_sens = get_splined("Multipole_Analysis_Theo_Sensitivity.txt", names=["nSources", "flux_per_source"])
+spline_theo_disc = get_splined("Multipole_Analysis_Theo_DiscPot.txt", names=["nSources", "flux_per_source"])
