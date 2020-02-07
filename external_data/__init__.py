@@ -44,8 +44,6 @@ limit_E2 = get_splined("Sensitivity_E_2_7yr_PS_paper.txt", names=["sinDec", "flu
 sensitivity_E3 = get_splined("Sensitivity_E_3_7yr_PS_paper.txt", names=["sinDec", "flux"])
 discovery_potential_E3 = get_splined("DiscPot_E_3_7yr_PS_paper.txt", names=["sinDec", "flux"])
 
-# flux_north.txt
-
 spline_stefan_wiki_naive = get_splined("HPA_7yr_wiki_naive_expectation.txt", names=["nSources", "flux_per_source"])
 spline_stefan_wiki_sens =  get_splined("HPA_7yr_wiki_sensitivity.txt", names=["nSources", "flux_per_source"])
 spline_stefan_wiki_disc = get_splined("HPA_7yr_wiki_disc_pot.txt", names=["nSources", "flux_per_source"])
@@ -54,3 +52,21 @@ spline_stefan_paper_limit =  get_splined("HPA_7yr_paper_UL.txt", names=["nSource
 spline_stefan_paper_disc =  get_splined("HPA_7yr_paper_disc_pot.txt", names=["nSources", "flux_per_source"])
 spline_theo_sens = get_splined("Multipole_Analysis_Theo_Sensitivity.txt", names=["nSources", "flux_per_source"])
 spline_theo_disc = get_splined("Multipole_Analysis_Theo_DiscPot.txt", names=["nSources", "flux_per_source"])
+
+# flux_north.txt
+# north_logp_fit_720_TS_5sig.txt
+# north_logp_fit_720_TS_median.txt
+# north_logp_fit_720_data.txt
+# north_logp_fit_720_fit.txt
+# northern_trial_all_sky_scan_2sig.txt
+# northern_trial_all_sky_scan_3sig.txt
+# northern_trial_all_sky_scan_data_points.txt
+# northern_trial_all_sky_scan_exp_result.txt
+# northern_trial_all_sky_scan_fit.txt
+# northern_trial_all_sky_scan_median.txt
+# trial_3yr_vs_UL_3yr_vs_mese_3yr_20_discovery_potential_7yr.txt
+# trial_3yr_vs_UL_3yr_vs_mese_3yr_20_hot_spot_upper_limit_7yr.txt
+# trial_3yr_vs_UL_3yr_vs_mese_3yr_20_hotspot.txt
+# trial_3yr_vs_UL_3yr_vs_mese_3yr_20_sensitivity_7y.txt
+# trial_3yr_vs_UL_3yr_vs_mese_3yr_20_trial_corrected_3_sigma_level_7yr.txt
+# trial_3yr_vs_UL_3yr_vs_mese_3yr_20_upper_limits_90_per_cent.txt
