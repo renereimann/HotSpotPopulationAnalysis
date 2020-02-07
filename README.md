@@ -11,6 +11,7 @@ We need a set of all sky scans, as TS parametrization (instance of parameetrizat
 The procedure will start as following:
 
 1. get_warm_spots_from_skylab_all_sky_scans.py
+
     This script extracts a list of local warm spots from a skylab all sky scan.
     It computs a list of (theta, phi, p-value) tuples from a skylab p-value map.
 
@@ -21,13 +22,23 @@ The procedure will start as following:
     * cutoff: Threshold in -log10(p-value) above which local warm spots are
         considered.
 
-2. Run check_poissonian_distribution_and_parametrizise_expectation.py
-    You have to give the input and output directory, a minimal angular distance, the minimal -log10 p-value threshold and you can give a plot dir.
+2. check_poissonian_distribution_and_parametrizise_expectation.py
 
     Will check for different thresholds if spots are poissonian distributed. Will produce plots and put them in a plot dir
     Will produce a parametrization / spline of the #spots expectation vs p-value threshold.
     The parametrization and the spline of this parametization are saved in pickle files.
     parametrization_min_ang_dist_?.pickle and spline_expectation_min_ang_?dist_min_thres_?.py
+
+    Parameters:
+    * Infiles:
+    * Outputfiles:
+    * MinAngDist
+    * threshold
+    * plotdir
+    
+    You have to give the input and output directory, a minimal angular distance, the minimal -log10 p-value threshold and you can give a plot dir.
+
+
 
 3. Run calculate_max_local_pValues.py
     You have to give the input and output directory, the path to the expectation spline, a minimal angular distance and the minimal -log10 p-value threshold.
