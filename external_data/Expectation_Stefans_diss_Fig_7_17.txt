@@ -1,7 +1,5 @@
-# Here we have digitized the expectation of Number of Spots above a certain threshold.
+# Here we have digitized the expectation of Number of Spots above a certain -log10(p-value)-threshold.
 # We used Fig 7.17 of Stefans diss.
-
-expectation_vs_threshold_digitized = """
 3, 112.38921496197231
 3.046021093000959, 101.68253779481516
 3.086289549376798, 95.11759691218714
@@ -61,4 +59,3 @@ expectation_vs_threshold_digitized = """
 5.559923298178333, 0.23418831260592435
 5.600191754554172, 0.19819899558451973
 5.64046021093001, 0.16774040264261586
-"""
