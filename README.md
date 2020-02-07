@@ -10,11 +10,17 @@ We need a set of all sky scans, as TS parametrization (instance of parameetrizat
 
 The procedure will start as following:
 
-1. Run extract_population_spots_from_skylab.py
-    You have to give the input and output directory, the minimal -log10 p-value threshold, and the beginning of the seed that should be read in.
+1. get_warm_spots_from_skylab_all_sky_scans.py
+    This script extracts a list of local warm spots from a skylab all sky scan.
+    It computs a list of (theta, phi, p-value) tuples from a skylab p-value map.
 
-    The result will be a file that contains a list of p-value, theta and phi tuples for each local spot with a p-value smaller then threshold.
-    Usually one file contains lists for several all sky scans.
+    Parameters
+    ----------
+    Infiles: List of skylab all_sky_scan file paths
+    Outfile: File path of the output file, where the list with local warm spots
+        should be written.
+    cutoff: Threshold in -log10(p-value) above which local warm spots are
+        considered.
 
 2. Run check_poissonian_distribution_and_parametrizise_expectation.py
     You have to give the input and output directory, a minimal angular distance, the minimal -log10 p-value threshold and you can give a plot dir.
@@ -56,3 +62,41 @@ The files utils.py and sensitivity_plots.py contain functions and classes that a
 
 Notes:
     * We wondered why the expectation in the paper was cutting of. The difference is that the median was shown while we thought it would be the mean. The mean (also the expectation value) is still decreasing linearly.
+
+
+Import dependencies
+
+from __future__ import print_function
+
+import cPickle
+import os
+import glob
+import argparse
+import re
+import sys
+import time
+import copy
+
+import numpy as np
+from numpy.lib.recfunctions import append_fields
+
+from scipy.interpolate import UnivariateSpline
+import scipy.integrate
+from scipy.special import gamma, gammaincc
+from scipy import stats
+from scipy.stats import poisson, norm, binom, gamma
+from scipy.optimize import minimize
+from scipy.optimize import fmin_l_bfgs_b
+
+import healpy
+
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.colors as colors
+import matplotlib.lines as mlines
+from matplotlib.colors import LogNorm
+
+import cosmolopy                                                                                                                            # Kowalsky.py
+from FIRESONG.Evolution import Evolution, RedshiftDistribution, StandardCandleSources, cosmology, Ntot                                      # Kowalsky.py
+from SourceUniverse.SourceUniverse import SourceCountDistribution                                                                           # utils.py
