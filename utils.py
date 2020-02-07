@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import matplotlib.pyplot as plt
-import cPickle, glob, os, copy, re, argparse
+import cPickle, glob, os, re, argparse
 try:
     import healpy
 except:
@@ -9,7 +9,6 @@ except:
 
 import numpy as np
 from numpy.lib.recfunctions import append_fields
-from scipy import stats
 from scipy.stats import poisson, binom, gamma
 from scipy.interpolate import UnivariateSpline
 from scipy.optimize import minimize
@@ -116,9 +115,9 @@ def counts_above_pval(trials, thres, plotting=False, verbose=False, plot_path=No
     mean = np.mean(counts_above)
     if not naive_expectation is None:
         mean = 10**(-thres)*naive_expectation 
-    ks_poisson = stats.kstest(counts_above, poisson(mean).cdf, alternative="greater")[1]
+    ks_poisson = kstest(counts_above, poisson(mean).cdf, alternative="greater")[1]
     N_trials = mean/np.power(10, -thres)
-    ks_binom   = stats.kstest(counts_above,  binom(int(N_trials), np.power(10, -thres)).cdf, alternative="greater")[1]
+    ks_binom   = kstest(counts_above,  binom(int(N_trials), np.power(10, -thres)).cdf, alternative="greater")[1]
     
     if plotting and (np.max(counts_above)-np.min(counts_above)) > 0 :
         curr_plot = counts_above_plot(counts_above, thres)
@@ -173,7 +172,7 @@ def make_gamma_fit(read_path, verbose=False,
     
     params = gamma.fit(trials, floc=0)
     
-    ks_gamma = stats.kstest(trials, gamma(*params).cdf, alternative="greater")[1]
+    ks_gamma = kstest(trials, gamma(*params).cdf, alternative="greater")[1]
         
     # histogram
     hi, edg = np.histogram(trials, bins=np.linspace(0, 5, 21), density=True)
@@ -885,8 +884,7 @@ def sens_estimation(trials, TS_thres, perc, eps):
     seed = mu[np.argmin([fun(i) for i in mu])]
 
     # minimize function
-    x, f, info = fmin_l_bfgs_b(fun, [seed],bounds=bounds,
-                               approx_grad=True)
+    x, f, info = fmin_l_bfgs_b(fun, [seed], bounds=bounds, approx_grad=True)
 
     # calculate uncertainties on percentile
     beta, beta_err = poisson_percentile(x, trials["n_inj"], trials["logP"], TS_thres)

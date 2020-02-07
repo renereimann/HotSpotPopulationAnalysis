@@ -75,30 +75,24 @@ Notes:
 
 
 Import dependencies
-
-from __future__ import print_function
+-------------------
 
 import cPickle
 import os
 import glob
 import argparse
 import re
-import sys
 import time
-import copy
 
 import numpy as np
 from numpy.lib.recfunctions import append_fields
-
 from scipy.interpolate import UnivariateSpline
 import scipy.integrate
 from scipy.special import gamma, gammaincc
 from scipy import stats
 from scipy.stats import poisson, norm, binom, gamma
-from scipy.optimize import minimize
+from scipy.optimize import curve_fit, minimize
 from scipy.optimize import fmin_l_bfgs_b
-
-import healpy
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -107,6 +101,7 @@ import matplotlib.colors as colors
 import matplotlib.lines as mlines
 from matplotlib.colors import LogNorm
 
+import healpy
 import cosmolopy                                                                                                                            # Kowalsky.py
 from FIRESONG.Evolution import Evolution, RedshiftDistribution, StandardCandleSources, cosmology, Ntot                                      # Kowalsky.py
 from SourceUniverse.SourceUniverse import SourceCountDistribution                                                                           # utils.py

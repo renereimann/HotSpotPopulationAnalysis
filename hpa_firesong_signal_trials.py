@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, cPickle, os, argparse
+import cPickle, os, argparse
 import numpy as np
 from ps_analysis.scripts.parametrization_fit import pVal_calc
 from ps_analysis.hpa.utils import expectation, background_pool, signal_pool_FIRESONG, signal_trials 

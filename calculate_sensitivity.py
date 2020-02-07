@@ -2,7 +2,6 @@
 
 # This script uses background trials and signal trials to calculate sensitivity and discovery potential for the HPA.
 
-from __future__ import print_function
 import os, cPickle, glob, re, argparse 
 import numpy as np
 
@@ -26,12 +25,12 @@ plotting           = False
 with open(gamma_fit_file, "r") as open_file:
     gamma_fit = cPickle.load(open_file)
 bgd_TS_vals =[gamma_fit[k][0] if k!="UL" else 1.37962118438 for k in TS_val_keys]
-print(bgd_TS_vals)
+print bgd_TS_vals
 
 # Get mu -> flux factor 
 
 mu2flux = get_mu2flux_from_sens_files(single_sens_folder)
-print("Mu to flux conversion factor:", mu2flux)
+print "Mu to flux conversion factor:", mu2flux
 
 
 
@@ -48,12 +47,12 @@ for i, nsrc in enumerate(nsrc_list):
     
     # loop over sensitivity and discovery potential TS
     for j, (val_i, beta_i) in enumerate(zip(bgd_TS_vals, beta)):
-        print(nsrc, val_i)
+        print nsrc, val_i
         try:
             # SENSITIVITY estimation
             mu, w, b, b_err = sens_estimation(sig_trials, val_i, beta_i, eps)    
         except Exception as e:
-            print(nsrc, e)
+            print nsrc, e
             continue
         
         flux[i,j] = mu * mu2flux
@@ -78,7 +77,7 @@ for i in range(np.shape(flux)[1]):
 # convert flux from GeV in TeV
 flux *= 1.e-3
 
-print(flux)
+print flux
 
 # put everything together
 my_result = {"nsrc": nsrc_list, "sens":flux[:, 0], "3sig":flux[:, 1], "5sig":flux[:,2], "UL": flux[:,3]}
