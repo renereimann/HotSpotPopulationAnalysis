@@ -14,12 +14,11 @@ The procedure will start as following:
     This script extracts a list of local warm spots from a skylab all sky scan.
     It computs a list of (theta, phi, p-value) tuples from a skylab p-value map.
 
-    Parameters
-    ----------
-    Infiles: List of skylab all_sky_scan file paths
-    Outfile: File path of the output file, where the list with local warm spots
+    Parameters:
+    * Infiles: List of skylab all_sky_scan file paths
+    * Outfile: File path of the output file, where the list with local warm spots
         should be written.
-    cutoff: Threshold in -log10(p-value) above which local warm spots are
+    * cutoff: Threshold in -log10(p-value) above which local warm spots are
         considered.
 
 2. Run check_poissonian_distribution_and_parametrizise_expectation.py

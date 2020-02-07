@@ -1,0 +1,8 @@
+# Here we have digitized Fig. 5.4 of Stefans Diss.
+# For each threshold we will give the histogram points.
+# Threshold: 5.75
+# nSpots, rel counts
+0.5064935064936389, 0.9039462952506437
+1.4935064935066507, 0.31093544137022466
+2.5064935064936904, 0.07061296191731048
+3.493506493506704, 0.02349582784365456
