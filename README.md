@@ -83,14 +83,13 @@ import glob
 import argparse
 import re
 import time
-
+import collections
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from scipy.interpolate import UnivariateSpline
 import scipy.integrate
 from scipy.special import gamma, gammaincc
-from scipy import stats
-from scipy.stats import poisson, norm, binom, gamma
+from scipy.stats import poisson, norm, binom, gamma, chi2, expon, kstest
 from scipy.optimize import curve_fit, minimize
 from scipy.optimize import fmin_l_bfgs_b
 
@@ -102,52 +101,44 @@ import matplotlib.lines as mlines
 from matplotlib.colors import LogNorm
 
 import healpy
-import cosmolopy                                                                                                                            # Kowalsky.py
-from FIRESONG.Evolution import Evolution, RedshiftDistribution, StandardCandleSources, cosmology, Ntot                                      # Kowalsky.py
-from SourceUniverse.SourceUniverse import SourceCountDistribution                                                                           # utils.py
+import cosmolopy                                                                                                            # Kowalsky.py
+from FIRESONG.Evolution import Evolution, RedshiftDistribution, StandardCandleSources, cosmology, Ntot                      # Kowalsky.py
+from SourceUniverse.SourceUniverse import SourceCountDistribution                                                           # utils.py
 
 Files
+-----
 
-drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  6 14:27 cluster/                    #
-drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  7 10:13 external_data/              # Digitized Data for reference
-drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  5 16:08 plotting/                   # 
-drwxrwxr-x 7 bootcamp bootcamp 184320 Feb  6 20:51 test_data/                  # Test data for testing
--rw-rw-r-- 1 bootcamp bootcamp   4978 Feb  7 18:53 README.md                   # Docu
--rw-rw-r-- 1 bootcamp bootcamp  35149 Feb  5 15:08 LICENSE                     # LICENSE
--rw-rw-r-- 1 bootcamp bootcamp      0 Feb  5 15:10 __init__.py                 # Make this a package
--rwxrwxr-x 1 bootcamp bootcamp   1892 Feb  5 15:10 calculate_max_local_pValues.py                                           # 3. Generate / calculate background HPA TS
--rw-rw-r-- 1 bootcamp bootcamp   3366 Feb  7 18:38 calculate_sensitivity.py                                                 # 7. Calculate sensitivity
--rwxrwxr-x 1 bootcamp bootcamp   2582 Feb  6 16:35 check_poissonian_distribution_and_parametrizise_expectation.py           # 2. generate expectation spline for background populations
+drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  6 14:27 cluster/                                                                 #
+drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  7 10:13 external_data/                                                           # Digitized Data for reference
+drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  5 16:08 plotting/                                                                # 
+drwxrwxr-x 7 bootcamp bootcamp 184320 Feb  6 20:51 test_data/                                                               # Test data for testing
+-rw-rw-r-- 1 bootcamp bootcamp   4978 Feb  7 18:53 README.md                                                                # README
+-rw-rw-r-- 1 bootcamp bootcamp  35149 Feb  5 15:08 LICENSE                                                                  # LICENSE
+-rw-rw-r-- 1 bootcamp bootcamp      0 Feb  5 15:10 __init__.py                                                              # Make this a package
 -rwxrwxr-x 1 bootcamp bootcamp   1943 Feb  6 15:00 get_warm_spots_from_skylab_all_sky_scans.py                              # 1. get warm spots from all sky scans
+-rwxrwxr-x 1 bootcamp bootcamp   2582 Feb  6 16:35 check_poissonian_distribution_and_parametrizise_expectation.py           # 2. generate expectation spline for background populations
+-rwxrwxr-x 1 bootcamp bootcamp   1892 Feb  5 15:10 calculate_max_local_pValues.py                                           # 3. Generate / calculate background HPA TS
+-rw-rw-r-- 1 bootcamp bootcamp   1408 Feb  6 10:20 make_extrapolation.py                                                    # 4. Fit / extrapolate background HPA TS
+-rw-rw-r-- 1 bootcamp bootcamp    411 Feb  5 15:10 prepare_bgd_pool.py                                                      # 5. generate a background pool
+-rw-rw-r-- 1 bootcamp bootcamp    807 Feb  5 15:10 prepare_signal_pool.py                                                   # 5. generate a signal pool
 -rw-rw-r-- 1 bootcamp bootcamp   3750 Feb  7 18:43 hpa_firesong_signal_trials.py                                            # 6. Generate signal HPA TS trials, FIRESONG source count distributions
 -rwxrwxr-x 1 bootcamp bootcamp   3487 Feb  6 10:20 hpa_signal_trials.py                                                     # 6. Generate signal HPA TS trials, equal flux source count distributions
 -rwxrwxr-x 1 bootcamp bootcamp   4733 Feb  6 09:58 hpa_SourceUniverse_signal_trials.py                                      # 6. Generate signal HPA TS trials, SourceUnivers source count distr
--rw-rw-r-- 1 bootcamp bootcamp   1408 Feb  6 10:20 make_extrapolation.py                                                    # 4. Fit / extrapolate background HPA TS
--rw-rw-r-- 1 bootcamp bootcamp  23233 Feb  6 09:53 parametrization_fit.py                                                   # class for TS -> pValue conversion (only used in generate signal pool)
--rw-rw-r-- 1 bootcamp bootcamp    411 Feb  5 15:10 prepare_bgd_pool.py                                                      # 5. generate a background pool
--rw-rw-r-- 1 bootcamp bootcamp    807 Feb  5 15:10 prepare_signal_pool.py                                                   # 5. generate a signal pool 
--rw-rw-r-- 1 bootcamp bootcamp   5547 Feb  6 09:48 statistics.py                                                            # functions, related to statistics
+-rw-rw-r-- 1 bootcamp bootcamp   3366 Feb  7 18:38 calculate_sensitivity.py                                                 # 7. Calculate sensitivity
 -rw-rw-r-- 1 bootcamp bootcamp   2539 Feb  6 10:21 unblind_result.py                                                        # 8. The final unblinded value
+-rw-rw-r-- 1 bootcamp bootcamp   5547 Feb  6 09:48 statistics.py                                                            # functions, related to statistics
 -rw-rw-r-- 1 bootcamp bootcamp  39600 Feb  7 18:50 utils.py                                                                 # functions, classes
+-rw-rw-r-- 1 bootcamp bootcamp  23233 Feb  6 09:53 parametrization_fit.py                                                   # class for TS -> pValue conversion (only used in generate signal pool)
+
+Data Structures
+---------------
 
 single spot TS --> p-value parametrization
-
 all sky scans
-
 p-value set
-
 expectation
-
 HPA TS values / best fit results
-
 extrapolations
-
 pool
-
 single spot pool
-
 sensitivity
-
-
-
-
