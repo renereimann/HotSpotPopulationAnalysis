@@ -44,7 +44,13 @@ class SkylabAllSkyScan(object):
         self._dec_map = value
 
     def load_from_file(self, fileName):
-        """Reads a skylab all sky scan from file."""
+        """Reads a skylab all sky scan from file.
+
+        Parameters
+        ----------
+        fileName: str
+            The filepath from which we can read the all sky scan
+        """
         with open(fileName, "r") as open_file:
             job_args, scan = pickle.load(open_file)
         self.log10p_map = scan[0]["pVal"]
@@ -52,7 +58,13 @@ class SkylabAllSkyScan(object):
         self.ra_map = scan[0]["ra"]
 
     def mask_hemisphere(self, dec_range):
-        """Give the allowed declination range."""
+        """Set all p-values on the wrong hemisphere to 1.
+
+        Parameters
+        ----------
+        dec_range: tuple
+            Range that is used for analysis. Everything outside gets masked.
+        """
         mask = np.logical_or(self.dec_map < min(dec_range), self.dec_map > max(dec_range))
         self.log10p_map[mask] = 0
 
@@ -68,8 +80,8 @@ class SkylabAllSkyScan(object):
 
         Returns
         -------
-        ndarry ("theta":float, "phi": float, "pVal": float)
-            List of local warm spots. Each warm spot is described by a tuple (theta, phi, p-value)
+        ndarry ("dec":float, "ra": float, "pVal": float)
+            List of local warm spots. Each warm spot is described by a tuple (dec, ra, p-value)
 
         """
         log10p = self.log10p_map

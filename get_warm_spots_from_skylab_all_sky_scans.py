@@ -4,7 +4,7 @@ import argparse
 import os
 import cPickle
 import numpy as np
-from utils import get_spots
+from skylab_data import SkylabAllSkyScan
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--infiles",
@@ -16,11 +16,16 @@ parser.add_argument("--outfile",
                     type=str,
                     default="test_data/extracted_background_populations/all_sky_population_bgd_trial_test.pickle",
                     help="Path of the output file.")
-parser.add_argument("--cutoff",
+parser.add_argument("--log10pVal_threshold",
                     type=float,
                     required=False,
                     default=3.0,
                     help="Give the -log10(p-value) above that spots should not be considerd. Default: 3.0.")
+parser.add_argument("--min_ang_dist",
+                    type=float,
+                    required=False,
+                    default=1.0,
+                    help="Give the minimal angular distance allowed between two local warm spots. Units: degrees. Default: 1.")
 args = parser.parse_args()
 
 print "Run", os.path.realpath(__file__)
@@ -29,22 +34,12 @@ print
 
 # here we store the output
 spots_trials = []
-
 for file_name in args.infiles:
-    # read in the skymap
-    # this is the way, I saved the sky map. That my be modified.
     print "Processing", os.path.basename(file_name)
-    with open(file_name, "r") as open_file:
-        job_args, scan = cPickle.load(open_file)
-    log10p_map = scan[0]["pVal"]
-    dec_map = scan[0]["dec"]
-    
-    # mask Southern hemisphere
-    mask = np.logical_or( dec_map < np.radians(-3), dec_map > np.radians(90))
-    log10p_map[mask] = 0
-
-    # get the spots and append
-    spots = get_spots(log10p_map, cutoff_pval=args.cutoff)
+    scan = SkylabAllSkyScan(path=file_name)
+    scan.mask_hemisphere(dec_range=[np.radians(-3), np.radians(90)])
+    spots = scan.get_local_warm_spots(log10p_threshold=args.log10pVal_threshold,
+                                      min_ang_dist=args.min_ang_dist)
     spots_trials.append(spots)
 
 # write output
