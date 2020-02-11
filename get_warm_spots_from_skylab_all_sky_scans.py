@@ -11,7 +11,7 @@ parser.add_argument("--infiles",
                     type=str,
                     nargs='+',
                     default=["test_data/all_sky_scans_background/all_sky_scan_trial_iter2_skylab_sens_model_MCLLH3_season_IC_8yr_bestfit_spline_bin_mod_dec_2_spline_bin_mod_ener_2_prior_2.19_0.1_negTS_V2_inject_2.0_nside_256_followup_1_pseudo_experiment_3010_seed_3010.pickle", "test_data/all_sky_scans_background/all_sky_scan_trial_iter2_skylab_sens_model_MCLLH3_season_IC_8yr_bestfit_spline_bin_mod_dec_2_spline_bin_mod_ener_2_prior_2.19_0.1_negTS_V2_inject_2.0_nside_256_followup_1_pseudo_experiment_3011_seed_3011.pickle"],
-                    help="List of all the input files, that should be read and processed.")
+                    help="List of input files. Input files should contain the healpy maps of a single all sky scan.")
 parser.add_argument("--outfile",
                     type=str,
                     default="test_data/extracted_background_populations/all_sky_population_bgd_trial_test.pickle",

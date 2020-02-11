@@ -6,14 +6,15 @@ from scipy.interpolate import UnivariateSpline
 from utils import get_all_sky_trials, counts_above_pval
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--indir",
+parser.add_argument("--infiles",
                     type=str,
-                    default="./test_data/extracted_background_populations/",
-                    help="Give inpath.")
+                    nargs='+',
+                    default=["test_data/extracted_background_populations/.pickle", "test_data/extracted_background_populations/.pickle"],
+                    help="List of input files. Input files should contain a list of extracted background populations.")
 parser.add_argument("--outdir",
                     type=str,
                     default="test_data/from_poisson_test/",
-                    help="Give outpath.")
+                    help="Path of the output folder.")
 parser.add_argument("--cutoff",
                     type=float,
                     required=False,
@@ -23,7 +24,7 @@ parser.add_argument("--min_ang_dist",
                     type=float,
                     required=False,
                     default=1.0,
-                    help="Give the digits except the last of seed numbers.")
+                    help="Give the minimal angular distance allowed between two local warm spots. Units: degrees. Default: 1.")
 parser.add_argument("--plotdir",
                     type=str,
                     required=False,
@@ -31,10 +32,12 @@ parser.add_argument("--plotdir",
                     help="Give plot path.")
 args = parser.parse_args()
 
-# read in stuff
-glob_path    = os.path.join(args.indir, "all_sky_population_bgd_trials_cutoff_pVal_{args.cutoff}_seed_*X.pickle".format(**locals()))
+print "Run", os.path.realpath(__file__)
+print "Use arguments:", args
+print
 
-trials = get_all_sky_trials(glob_path, min_ang_dist=args.min_ang_dist)    
+# read in stuff
+trials = get_all_sky_trials(args.infiles, min_ang_dist=args.min_ang_dist)    
 
 # test poissonian distribution
 parametrization = []

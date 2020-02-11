@@ -126,7 +126,7 @@ def counts_above_pval(trials, thres, plotting=False, verbose=False, plot_path=No
     
     return thres, mean, ks_poisson, ks_binom
 
-def get_all_sky_trials(glob_path, min_ang_dist=1.):
+def get_all_sky_trials(infiles, min_ang_dist=1.):
     """ Read in spots of all sky trials that are under 'glob_path'.
     It is assumed that the spots are already sorted by pvalue.
     An additional cut is performed on the minimal angular distance between two hot spots. 
@@ -134,8 +134,8 @@ def get_all_sky_trials(glob_path, min_ang_dist=1.):
     """
      
     trials = [] 
-    for path in glob.glob(glob_path):
-        with open(path, "r") as open_file:
+    for file_name in infiles:
+        with open(file_name, "r") as open_file:
             temp = cPickle.load(open_file)
         trials.extend(temp)
     print "Read in %d files"%len(trials)
@@ -223,8 +223,9 @@ class background_pool(object):
         self.random       = np.random.RandomState(seed)
         
     def load_trials(self, glob_path):
-        self.n_files = len(glob.glob(glob_path))
-        trials = get_all_sky_trials(glob_path, min_ang_dist=self.min_ang_dist)
+        infiles = glob.glob(glob_path)
+        self.n_files = len(infiles)
+        trials = get_all_sky_trials(infiles, min_ang_dist=self.min_ang_dist)
         
         if self.cut_on_nspot is None:
             # in this mode we use all spots and draw a poisson number base on expecation

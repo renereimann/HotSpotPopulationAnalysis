@@ -5,10 +5,11 @@ import numpy as np
 from ps_analysis.hpa.utils import get_all_sky_trials, expectation 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--indir",
+parser.add_argument("--infiles",
                     type=str,
-                    required=True,
-                    help="Give inpath.")
+                    nargs='+',
+                    default=["test_data/extracted_background_populations/.pickle", "test_data/extracted_background_populations/.pickle"],
+                    help="List of input files. Input files should contain a list of extracted background populations.")
 parser.add_argument("--outdir",
                     type=str,
                     required=True,
@@ -31,8 +32,7 @@ args = parser.parse_args()
 
 expect = expectation(args.expectation)
         
-glob_path    = os.path.join(args.indir, "all_sky_population_bgd_trials_cutoff_pVal_{args.cutoff}_seed_*X.pickle".format(**locals()))
-trials = get_all_sky_trials(glob_path, min_ang_dist=args.min_ang_dist) 
+trials = get_all_sky_trials(args.infiles, min_ang_dist=args.min_ang_dist) 
 
 for min_thres in np.linspace(args.cutoff, 4., int((4.-args.cutoff)*10)+1):
 
