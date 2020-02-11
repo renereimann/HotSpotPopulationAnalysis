@@ -3,7 +3,7 @@
 import numpy as np
 import cPickle, os, argparse
 from scipy.interpolate import UnivariateSpline
-from utils import get_all_sky_trials, counts_above_pval
+from utils import counts_above_pval
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--infiles",
@@ -47,29 +47,34 @@ def counts_above_pval(trials, thres, plotting=False, verbose=False, plot_path=No
     If naive_expectation is not None you have to give the number of effective trials. KS-Tests will be tested vs naive_expectations.
     Naive expectation is: N_expected = N_eff_trials*pValue
     """
-    
+
     counts_above = [np.sum(t["pVal"] > thres) for t in trials]
     mean = np.mean(counts_above)
     if not naive_expectation is None:
-        mean = 10**(-thres)*naive_expectation 
+        mean = 10**(-thres)*naive_expectation
     ks_poisson = kstest(counts_above, poisson(mean).cdf, alternative="greater")[1]
     N_trials = mean/np.power(10, -thres)
     ks_binom   = kstest(counts_above,  binom(int(N_trials), np.power(10, -thres)).cdf, alternative="greater")[1]
-    
+
     if plotting and (np.max(counts_above)-np.min(counts_above)) > 0 :
         curr_plot = counts_above_plot(counts_above, thres)
         curr_plot.plot(savepath=plot_path)
-    
+
     if verbose:
         print "-log10(p):", thres
         print "Mean:", mean
         print "KS-Test (Poisson), p-val:", ks_poisson
         print "KS-Test (Binomial), p-val:", ks_binom
-    
+
     return thres, mean, ks_poisson, ks_binom
 
 # read in stuff
-trials = get_all_sky_trials(args.infiles, min_ang_dist=args.min_ang_dist)    
+trials = []
+for file_name in args.infiles:
+    with open(file_name, "r") as open_file:
+        temp = cPickle.load(open_file)
+    trials.extend(temp)
+print "Read in %d files"%len(trials)
 
 # test poissonian distribution
 parametrization = []
@@ -83,7 +88,7 @@ parametrization = np.array(parametrization)
 spline = UnivariateSpline(parametrization[:,0], np.log10(parametrization[:,1]+1e-20), s=0, k=1)
 
 # save stuff
-if not os.path.exists(args.outdir): 
+if not os.path.exists(args.outdir):
     raise ValueError("You try to save in a non existing directory. Create the folder : {args.outdir}".format(**locals()))
 with open(os.path.join(args.outdir, "parametrization_expectiation_cutoff_pVal_{args.cutoff}_min_ang_dist_{args.min_ang_dist:.2f}.pickle".format(**locals())), "w") as open_file:
     cPickle.dump(parametrization, open_file)

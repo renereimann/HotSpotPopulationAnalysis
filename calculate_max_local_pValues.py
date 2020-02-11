@@ -2,7 +2,7 @@
 
 import os, cPickle, argparse
 import numpy as np
-from ps_analysis.hpa.utils import get_all_sky_trials, expectation 
+from ps_analysis.hpa.utils import expectation
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--infiles",
@@ -31,8 +31,13 @@ parser.add_argument("--min_ang_dist",
 args = parser.parse_args()
 
 expect = expectation(args.expectation)
-        
-trials = get_all_sky_trials(args.infiles, min_ang_dist=args.min_ang_dist) 
+
+trials = []
+for file_name in args.infiles:
+    with open(file_name, "r") as open_file:
+        temp = cPickle.load(open_file)
+    trials.extend(temp)
+print "Read in %d files"%len(trials)
 
 for min_thres in np.linspace(args.cutoff, 4., int((4.-args.cutoff)*10)+1):
 
@@ -40,7 +45,7 @@ for min_thres in np.linspace(args.cutoff, 4., int((4.-args.cutoff)*10)+1):
     for i, t in enumerate(trials):
         data = t["pVal"][t["pVal"] >= min_thres]
         trial_correction[i] = expect.poisson_prob(data)
-                                              
+
     save_path = os.path.join(args.outdir, "max_local_pVal_min_ang_dist_{args.min_ang_dist:.2f}_min_thres_{min_thres:.2f}.pickle".format( **locals() ) )
     with open(save_path, "w") as save_file:
         cPickle.dump(trial_correction, save_file)
