@@ -36,6 +36,38 @@ print "Run", os.path.realpath(__file__)
 print "Use arguments:", args
 print
 
+def counts_above_pval(trials, thres, plotting=False, verbose=False, plot_path=None, naive_expectation=None):
+    """ Count the number of spots above a certain pValue threshold.
+    You have to give the 'trials' and the threshold pValue as 'pVal'.
+    Beside a fit of the poissonian also the ks-probability for a poissonian to data is performed.
+
+    If plotting is True we will produce a histogram of number of trials together with fitted Poissonian.
+    If plot_path is not None this plot is saved at that path and will not be shown otherwise it is send to display.
+    If verbose is True you get a lot of print outs with different parameted.
+    If naive_expectation is not None you have to give the number of effective trials. KS-Tests will be tested vs naive_expectations.
+    Naive expectation is: N_expected = N_eff_trials*pValue
+    """
+    
+    counts_above = [np.sum(t["pVal"] > thres) for t in trials]
+    mean = np.mean(counts_above)
+    if not naive_expectation is None:
+        mean = 10**(-thres)*naive_expectation 
+    ks_poisson = kstest(counts_above, poisson(mean).cdf, alternative="greater")[1]
+    N_trials = mean/np.power(10, -thres)
+    ks_binom   = kstest(counts_above,  binom(int(N_trials), np.power(10, -thres)).cdf, alternative="greater")[1]
+    
+    if plotting and (np.max(counts_above)-np.min(counts_above)) > 0 :
+        curr_plot = counts_above_plot(counts_above, thres)
+        curr_plot.plot(savepath=plot_path)
+    
+    if verbose:
+        print "-log10(p):", thres
+        print "Mean:", mean
+        print "KS-Test (Poisson), p-val:", ks_poisson
+        print "KS-Test (Binomial), p-val:", ks_binom
+    
+    return thres, mean, ks_poisson, ks_binom
+
 # read in stuff
 trials = get_all_sky_trials(args.infiles, min_ang_dist=args.min_ang_dist)    
 

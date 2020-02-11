@@ -2,38 +2,13 @@ import os
 import cPickle
 import collections
 import numpy as np
-from scipy.stats import chi2, expon
-from scipy.interpolate import UnivariateSpline
+from scipy.stats import expon
 
-
-class pVal_calc():
-    _fit_dict = None
-    
+class pVal_calc(object):
     def __init__(self, fit_dict):
         if type(fit_dict) is str and os.path.exists(fit_dict):
             with open(fit_dict, "r") as open_file:
                 fit_dict = cPickle.load(open_file)
-        if not type(fit_dict) is dict:
-            raise IOError("We need a dict for the pVal_calc class. Either you give the dict directly or you give the path from which to load.")
-            
-        if fit_dict[fit_dict.keys()[0]].has_key("version") and fit_dict[fit_dict.keys()[0]]["version"] == 2:
-            self._init_v2(fit_dict)
-        else:
-            self._init_v1(fit_dict)
-        
-    def _init_v1(self, fit_dict):
-        self._version   = 1
-        self._fit_dict  = fit_dict
-        self._decs      = np.array(sorted(self._fit_dict.keys()))
-        self._thres     = np.array([self._fit_dict[d]["thres"] for d in self._decs])
-        self._fract     = np.array([float(self._fit_dict[d]["Nthres"])/float(self._fit_dict[d]["Ntrials"]) for d in self._decs])
-        self._spline    = np.array([UnivariateSpline(self._fit_dict[d]["kde"][0], self._fit_dict[d]["kde"][1], k=1, s=0) for d in self._decs])
-        self._norm_spl  = (1.-self._fract)/np.array([self._spline[i].integral(-np.inf, thr) for i, thr in enumerate(self._thres)])
-        self._chi2      = np.array([chi2(*self._fit_dict[d]["params"][1:]) for d in self._decs])
-        self._norm_chi2 = np.array([1-self._chi2[i].cdf(thr) for i, thr in enumerate(self._thres)])
-    
-    def _init_v2(self, fit_dict):
-        self._version   = 2
         self._fit_dict  = fit_dict
         self._decs      = np.array(sorted(self._fit_dict.keys()))
         self._thres     = np.array([self._fit_dict[d]["thres"] for d in self._decs])
@@ -42,41 +17,7 @@ class pVal_calc():
         self._expon      = np.array([expon(loc=0, scale=self._fit_dict[d]["params"][1]) for d in self._decs])
         self._norm_expon = np.array([1-self._expon[i].cdf(thr) for i, thr in enumerate(self._thres)])
         
-    def __str__(self):
-        return "This class can calculate p-values based on a fit_dict. This fit_dict contains {} different declinations.".format(len(self._decs))
-
-    def __call__(self, TS, dec):
-        return self.pVal(TS, dec)
-        
     def _pVal_from_round_dec(self, TS, dec):
-        if self._version == 1: 
-            return self._pVal_from_round_dec_V1(TS, dec)
-        elif self._version == 2:
-            return self._pVal_from_round_dec_V2(TS, dec)    
-        else:
-            raise NotImplementedError("Just up to version 2 is implemented!")
-        
-    def _pVal_from_round_dec_V1(self, TS, dec):
-        dec = np.atleast_1d(dec)
-        TS = np.atleast_1d(TS)
-        
-        idx = np.searchsorted(self._decs, dec)
-        thres                  = self._thres[idx]
-        fract_above_thres      = self._fract[idx]
-        spline                 = self._spline[idx]
-        spline_norm            = self._norm_spl[idx]
-        chi2_funct             = self._chi2[idx]
-        chi2_norm              = self._norm_chi2[idx]
-
-        ma = [TS > thr for thr in thres]
-
-        pval     = np.array([1.-np.array([spline[i].integral(-np.inf,t) for t in TS])*corr for i, corr in enumerate(spline_norm)])
-        for i, (d, func) in enumerate(zip(dec, chi2_funct)):
-            pval[i][ma[i]] = func.sf(TS[ma[i]])/chi2_norm[i]*fract_above_thres[i]
-            
-        return pval
-    
-    def _pVal_from_round_dec_V2(self, TS, dec):
         dec = np.atleast_1d(dec)
         TS = np.atleast_1d(TS)
         
@@ -98,11 +39,22 @@ class pVal_calc():
             pval[i][ma[i]] = func.sf(TS[ma[i]])/expon_norm[i]*fract_above_thres[i]
             
         return pval
-    
-    def pValFunc(self, TS, dec):
-        return self.pVal(TS, dec)   
-        
-    def pVal(self, TS, dec):
+
+    def _pVal_grid(self, TS, dec):
+        idx_up = np.searchsorted(self._decs, dec)
+        idx_low = idx_up-1
+
+        p_low = self._pVal_from_round_dec(TS, self._decs[idx_low])
+        p_up  = self._pVal_from_round_dec(TS, self._decs[idx_up])
+
+        ones = np.ones_like(TS)
+        _, dec_low = np.meshgrid(ones, self._decs[idx_low])
+        _, dec_up  = np.meshgrid(ones, self._decs[idx_up])
+        _, d       = np.meshgrid(ones, dec)
+
+        return (p_low-p_up)/(dec_low-dec_up)*(d-dec_low)+p_low
+
+    def __call__(self, TS, dec):
         TS_single = not isinstance(TS, (collections.Sequence, np.ndarray, np.recarray))
         dec_single = not isinstance(dec, (collections.Sequence, np.ndarray, np.recarray))
         
@@ -127,23 +79,3 @@ class pVal_calc():
             return pVal 
         else:
             raise NotImplementedError("This is a case that never should happen.")
-        
-    def _pVal_grid(self, TS, dec):
-        idx_up = np.searchsorted(self._decs, dec)
-        idx_low = idx_up-1
-
-        p_low = self._pVal_from_round_dec(TS, self._decs[idx_low])
-        p_up  = self._pVal_from_round_dec(TS, self._decs[idx_up])
-
-        ones = np.ones_like(TS)
-        _, dec_low = np.meshgrid(ones, self._decs[idx_low])
-        _, dec_up  = np.meshgrid(ones, self._decs[idx_up])
-        _, d       = np.meshgrid(ones, dec)
-
-        return (p_low-p_up)/(dec_low-dec_up)*(d-dec_low)+p_low
-
-    def neglogpVal(self, TS, dec):
-        return -np.log10(self.pVal(TS, dec))
-    
-    def neglogpValFunc(self, TS, dec):
-        return self.neglogpVal(TS, dec)
