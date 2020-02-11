@@ -1,4 +1,7 @@
-
+try:
+    from SourceUniverse.SourceUniverse import SourceCountDistribution
+except:
+    pass
 
 class signal_pool(object):
     def __init__(self, **kwargs):
