@@ -12,9 +12,9 @@ class LocalWarmSpotExpectation(object):
         pass
 
     def __call__(self, logP):
-        pass
         #N_expected = 
         #return N_expected
+        pass
 
 class HPA_TS_value(object):
     def __init__(self, **kwargs):
