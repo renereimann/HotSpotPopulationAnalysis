@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import matplotlib.pyplot as plt
-import cPickle, glob, os, re, argparse
+#import matplotlib.pyplot as plt
+import cPickle as pickle
+import glob, os, re, argparse
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from scipy.stats import poisson, binom, gamma
@@ -48,20 +49,20 @@ class expectation(object):
         if not os.path.exists(path):
             raise ValueError("You try to load a spline from a path that does not exist. You specified: {path}".format(**locals()))
         with open(path, "r") as open_file:
-            self.spl = cPickle.load(open_file)
+            self.spl = pickle.load(open_file)
         try:
             self.spl(10.)
         except:
             print("Backup solution")
             with open(path.replace("spline_expectation", "parametrization_expectiation"), "r") as open_file:
-                parametrization = cPickle.load(open_file)
+                parametrization = pickle.load(open_file)
             self.spl = UnivariateSpline(parametrization[:,0], np.log10(parametrization[:,1]+1e-20), s=0, k=1)    
         
         self.path = path
         
     def __str__(self):
-        print "Read in expectation spline from {self.path}".format(**locals())
-        print "Expectation for a pVal threshold of [2,3,4,5,6] is", self.__call__(range(2,7,1))
+        print("Read in expectation spline from {self.path}".format(**locals()))
+        print("Expectation for a pVal threshold of [2,3,4,5,6] is", self.__call__(range(2,7,1)))
         
     def __call__(self, x):
         # the spline is saved as log10(expectation) thus we have to return 10^spline
@@ -171,7 +172,7 @@ class background_pool(object):
     def load(self, load_path, seed=None):
         if not os.path.exists(load_path): raise IOError("load_path does not exist {load_path}".format(**locals()))
         with open(load_path, "r") as open_file:
-            state = cPickle.load(open_file)
+            state = pickle.load(open_file)
          
         self.min_ang_dist = state["min_ang_dist"]
         self.cutoff       = state["cutoff"]
@@ -203,7 +204,7 @@ class background_pool(object):
             state["min_threshold"]   = self.min_threshold
         
         with open(save_path, "w") as open_file:
-            cPickle.dump(state, open_file)
+            pickle.dump(state, open_file)
     
 
 class signal_trials(object):
