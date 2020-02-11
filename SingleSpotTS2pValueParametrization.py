@@ -4,8 +4,11 @@ import collections
 import numpy as np
 from scipy.stats import expon
 
-class pVal_calc(object):
-    def __init__(self, fit_dict):
+class SingleSpotTS2pValueParametrization(object):
+    def __init__(self, **kwargs):
+        fit_dict = kwargs.pop("path", None)
+        if fit_dict is None:
+            raise NotImplementedError("You have to give `path` in SingleSpotTS2pValueParametrization.")
         if type(fit_dict) is str and os.path.exists(fit_dict):
             with open(fit_dict, "r") as open_file:
                 fit_dict = cPickle.load(open_file)
@@ -79,3 +82,4 @@ class pVal_calc(object):
             return pVal 
         else:
             raise NotImplementedError("This is a case that never should happen.")
+        return pVal
