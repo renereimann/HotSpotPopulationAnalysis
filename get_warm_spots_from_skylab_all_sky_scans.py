@@ -11,11 +11,11 @@ parser.add_argument("--infiles",
                     type=str,
                     nargs='+',
                     default=["test_data/all_sky_scans_background/all_sky_scan_trial_iter2_skylab_sens_model_MCLLH3_season_IC_8yr_bestfit_spline_bin_mod_dec_2_spline_bin_mod_ener_2_prior_2.19_0.1_negTS_V2_inject_2.0_nside_256_followup_1_pseudo_experiment_3010_seed_3010.pickle", "test_data/all_sky_scans_background/all_sky_scan_trial_iter2_skylab_sens_model_MCLLH3_season_IC_8yr_bestfit_spline_bin_mod_dec_2_spline_bin_mod_ener_2_prior_2.19_0.1_negTS_V2_inject_2.0_nside_256_followup_1_pseudo_experiment_3011_seed_3011.pickle"],
-                    help="Give inpath.")
+                    help="List of all the input files, that should be read and processed.")
 parser.add_argument("--outfile",
                     type=str,
-                    default="test_data/extracted_background_populations/",
-                    help="Give outpath.")
+                    default="test_data/extracted_background_populations/all_sky_population_bgd_trial_test.pickle",
+                    help="Path of the output file.")
 parser.add_argument("--cutoff",
                     type=float,
                     required=False,
@@ -27,20 +27,24 @@ print "Run", os.path.realpath(__file__)
 print "Use arguments:", args
 print
 
+# here we store the output
 spots_trials = []
-for fName in args.infiles:
-    # get skymap
-    print "Now do", os.path.basename(fName)
-    with open(fName, "r") as open_file:
+
+for file_name in args.infiles:
+    # read in the skymap
+    # this is the way, I saved the sky map. That my be modified.
+    print "Processing", os.path.basename(file_name)
+    with open(file_name, "r") as open_file:
         job_args, scan = cPickle.load(open_file)
-    pvalues = scan[0]["pVal"]
+    log10p_map = scan[0]["pVal"]
+    dec_map = scan[0]["dec"]
     
     # mask Southern hemisphere
-    mask = np.logical_or( scan[0]["dec"] < np.radians(-3), scan[0]["dec"] > np.radians(90))
-    pvalues[mask] = 0
+    mask = np.logical_or( dec_map < np.radians(-3), dec_map > np.radians(90))
+    log10p_map[mask] = 0
 
     # get the spots and append
-    spots = get_spots(pvalues, cutoff_pval=args.cutoff)
+    spots = get_spots(log10p_map, cutoff_pval=args.cutoff)
     spots_trials.append(spots)
 
 # write output
