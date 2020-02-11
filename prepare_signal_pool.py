@@ -10,7 +10,7 @@ indir_sens2 = "/data/user/reimann/2017_10/sensitivity/mc_trials_fixed_negTS/E-2.
 sens_files      = sorted(glob.glob(os.path.join(indir_sens,  "sens_*.pickle")))
 additional_file = sorted(glob.glob(os.path.join(indir_sens2, "sens_*.pickle")))
 
-pVal = SingleSpotTS2pValueParametrization(path="/data/user/reimann/2017_10/parametrization/parametrization_expon_mc_thres_5.param")
+pVal = SingleSpotTS2pValueParametrization(path="test_data/parametrization_TS_to_p_value_exponential_fit_above_threshold_5_from_mc.param")
 sig_pool = signal_pool(seed=None)
 sig_pool.load_trials(sens_files, additional_file, pValue_calculator=pVal)
 
