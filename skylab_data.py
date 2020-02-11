@@ -68,6 +68,19 @@ class SkylabAllSkyScan(object):
         mask = np.logical_or(self.dec_map < min(dec_range), self.dec_map > max(dec_range))
         self.log10p_map[mask] = 0
 
+    @staticmethod
+    def apply_seperation(spots, min_ang_dist):
+        remove = []
+        for i in np.arange(0, len(spots)):
+            ang_dist = deltaPsi(spots["dec"][i], spots["ra"][i], spots["dec"][i+1:], spots["ra"][i+1:])
+            mask = np.where(ang_dist < np.radians(min_ang_dist))[0]
+            if len(mask) == 0: continue
+            if any(spots["pVal"][mask+i+1] >= spots["pVal"][i]):
+                remove.append(i)
+        mask = np.logical_not(np.in1d(range(len(spots)), remove))
+        return spots[mask]
+
+
     def get_local_warm_spots(self, log10p_threshold=2, min_ang_dist=1):
         r"""Extract local warm spots from a p-value skymap.
 
@@ -103,38 +116,19 @@ class SkylabAllSkyScan(object):
 
         # get pVal and direction of spots and sort them
         p_spots = log10p[warm_spots_idx]
-        idx = np.argsort(p_spots)
-        p_spots = p_spots[idx]
-        theta_spots, ra_spots = healpy.pix2ang(nside, np.array(warm_spots_idx)[idx])
-        dec_spots = np.pi/2-theta_spots
-
-        # require min dist > x deg
-        remove = []
-        for i in np.arange(0, len(p_spots)):
-            ang_dist = np.degrees(deltaPsi(dec_spots[i], ra_spots[i], dec_spots[i+1:], ra_spots[i+1:]))
-            mask = np.where(ang_dist < min_ang_dist)[0]
-            if len(mask) == 0: continue
-            if any(p_spots[mask+i+1] >= p_spots[i]):
-                # we have at least 2 points closer than 1 deg
-                remove.append(i)
-
-        mask = np.logical_not(np.in1d(range(len(p_spots)), remove))
+        theta_spots, ra_spots = healpy.pix2ang(nside, warm_spots_idx)
 
         # fill into record-array
-        spots = np.recarray((len(p_spots[mask]),), dtype=[("dec", float), ("ra", float), ("pVal", float)])
-        spots["dec"] = dec_spots[mask]
-        spots["ra"]   = ra_spots[mask]
-        spots["pVal"]  = p_spots[mask]
+        spots = np.recarray((len(p_spots),), dtype=[("dec", float), ("ra", float), ("pVal", float)])
+        spots["dec"] = np.pi/2-theta_spots
+        spots["ra"] = ra_spots
+        spots["pVal"] = p_spots
+        spots.sort(order="pVal")
+
+        SkylabAllSkyScan.apply_seperation(spots, min_ang_dist)
 
         return spots
 
 class SkylabSingleSpotTrial(object):
     def __init__(self, **kwargs):
         pass
-
-if __name__ == "__main__":
-    test = SkylabAllSkyScan(path="test_data/all_sky_scans_background/all_sky_scan_trial_iter2_skylab_sens_model_MCLLH3_season_IC_8yr_bestfit_spline_bin_mod_dec_2_spline_bin_mod_ener_2_prior_2.19_0.1_negTS_V2_inject_2.0_nside_256_followup_1_pseudo_experiment_3010_seed_3010.pickle")
-    test.mask_hemisphere(dec_range=[0,1.5])
-    lws = test.get_local_warm_spots()
-    print(lws)
-    print(len(lws))
