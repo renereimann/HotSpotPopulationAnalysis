@@ -3,49 +3,43 @@
 import os, cPickle, argparse
 import numpy as np
 from ps_analysis.hpa.utils import expectation
+from data_types import LocalWarmSpotExpectation
+from utils import HPA_analysis
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--infiles",
                     type=str,
                     nargs='+',
-                    default=["test_data/extracted_background_populations/.pickle", "test_data/extracted_background_populations/.pickle"],
+                    default=["test_data/extracted_background_populations/all_sky_population_bgd_trial_test.pickle"],
                     help="List of input files. Input files should contain a list of extracted background populations.")
-parser.add_argument("--outdir",
+parser.add_argument("--outfile",
                     type=str,
-                    required=True,
-                    help="Give outpath.")
+                    default="test_data/HPA_TS_background_from_skylab.pickle",
+                    help="Path of the output file.")
 parser.add_argument("--expectation",
                     type=str,
-                    required=True,
+                    default="test_data/from_poisson_test/HPA_nspot_expectation.pickle",
                     help="Give spline_path.")
-parser.add_argument("--cutoff",
-                    type=float,
-                    required=False,
-                    default=3.0,
-                    help="Give the -log10(p-value) above that spots should not be considerd. Default: 3.0.")
-parser.add_argument("--min_ang_dist",
-                    type=float,
-                    required=False,
-                    default=1.0,
-                    help="Give the digits except the last of seed numbers.")
 args = parser.parse_args()
 
-expect = expectation(args.expectation)
+print "Run", os.path.realpath(__file__)
+print "Use arguments:", args
+print
 
+# read in all sky trials
 trials = []
 for file_name in args.infiles:
     with open(file_name, "r") as open_file:
         temp = cPickle.load(open_file)
     trials.extend(temp)
-print "Read in %d files"%len(trials)
+print "Read in %d trials"%len(trials)
 
-for min_thres in np.linspace(args.cutoff, 4., int((4.-args.cutoff)*10)+1):
+# read in local warm spot expectation
+expect = LocalWarmSpotExpectation(load_path=args.expectation)
+analysis = HPA_analysis(expect)
 
-    trial_correction = np.zeros(len(trials))
-    for i, t in enumerate(trials):
-        data = t["pVal"][t["pVal"] >= min_thres]
-        trial_correction[i] = expect.poisson_prob(data)
+hpa_results = np.concatenate([analysis.best_fit(data) for data in trials])
 
-    save_path = os.path.join(args.outdir, "max_local_pVal_min_ang_dist_{args.min_ang_dist:.2f}_min_thres_{min_thres:.2f}.pickle".format( **locals() ) )
-    with open(save_path, "w") as save_file:
-        cPickle.dump(trial_correction, save_file)
+# save HPA values
+with open(args.outfile, "w") as open_file:
+    cPickle.dump(hpa_results, open_file)
