@@ -109,7 +109,7 @@ drwxrwxr-x 7 bootcamp bootcamp 184320 Feb  6 20:51 test_data/                   
 -rw-rw-r-- 1 bootcamp bootcamp  35149 Feb  5 15:08 LICENSE                                                                  # LICENSE
 -rw-rw-r-- 1 bootcamp bootcamp      0 Feb  5 15:10 __init__.py                                                              # Make this a package
 -rwxrwxr-x 1 bootcamp bootcamp   1943 Feb  6 15:00 get_warm_spots_from_skylab_all_sky_scans.py                              # 1. get warm spots from all sky scans
--rwxrwxr-x 1 bootcamp bootcamp   2582 Feb  6 16:35 check_poissonian_distribution_and_parametrizise_expectation.py           # 2. generate expectation spline for background populations
+-rwxrwxr-x 1 bootcamp bootcamp   2582 Feb  6 16:35 generate_expectation.py                                                  # 2. generate expectation spline for background populations
 -rwxrwxr-x 1 bootcamp bootcamp   1892 Feb  5 15:10 calculate_max_local_pValues.py                                           # 3. Generate / calculate background HPA TS
 -rw-rw-r-- 1 bootcamp bootcamp   1408 Feb  6 10:20 make_extrapolation.py                                                    # 4. Fit / extrapolate background HPA TS
 -rw-rw-r-- 1 bootcamp bootcamp    411 Feb  5 15:10 prepare_bgd_pool.py                                                      # 5. generate a background pool
@@ -121,4 +121,6 @@ drwxrwxr-x 7 bootcamp bootcamp 184320 Feb  6 20:51 test_data/                   
 -rw-rw-r-- 1 bootcamp bootcamp   2539 Feb  6 10:21 unblind_result.py                                                        # 8. The final unblinded value
 -rw-rw-r-- 1 bootcamp bootcamp   5547 Feb  6 09:48 statistics.py                                                            # functions, related to statistics
 -rw-rw-r-- 1 bootcamp bootcamp  39600 Feb  7 18:50 utils.py                                                                 # functions, classes
--rw-rw-r-- 1 bootcamp bootcamp  23233 Feb  6 09:53 parametrization_fit.py                                                   # class for TS -> pValue conversion (only used in generate signal pool)
+                                                   skylab_data.py                                                           # classes interacting with skylab
+                                                   data_types.py                                                            # classes with data types
+-rw-rw-r-- 1 bootcamp bootcamp  23233 Feb  6 09:53 SingleSpotTS2pValueParametrization.py                                    # class for TS -> pValue conversion (only used in generate signal pool)
