@@ -4,8 +4,8 @@
 import cPickle as pickle
 import glob, os, re, argparse
 import numpy as np
-from numpy.lib.recfunctions import append_fields
-from scipy.stats import poisson, binom, gamma
+
+from scipy.stats import poisson
 from scipy.interpolate import UnivariateSpline
 
 from statistics import poisson_percentile, poisson_weight
@@ -64,6 +64,48 @@ def deltaPsi(dec1, ra1, dec2, ra2):
     cosTheta[cosTheta<-1.] = -1.
     return np.arccos(cosTheta)
 
+
+class BackgroundLocalWarmSpotPool(object):
+    def __init__(self, **kwargs):
+        seed = kwargs.pop("seed", None)
+        self.random = np.random.RandomState(seed)
+
+    def load_trials(self, infiles):
+        # read in all sky trials
+        trials = []
+        for file_name in infiles:
+            with open(file_name, "r") as open_file:
+                temp = pickle.load(open_file)
+            trials.extend(temp)
+        print "Read in %d trials"%len(trials)
+
+        # in this mode we use all spots and draw a poisson number base on expecation
+        # the mean expected number of events above p-value threshold
+        self.n_expected = np.mean([len(t) for t in trials])
+        # the pool of background p-values
+        bgd_pool = np.concatenate([t["pVal"] for t in trials])
+        # clean if there are nans or infs
+        self.bgd_pool = bgd_pool[np.isfinite(bgd_pool)]
+
+    def get_pseudo_experiment(self):
+        nspots = self.random.poisson(self.n_expected)
+        return self.random.choice(self.bgd_pool, nspots, replace=False)
+
+    def load(self, load_path, seed=None):
+        with open(load_path, "r") as open_file:
+            state = pickle.load(open_file)
+        self.bgd_pool = state["bgd_pool"]
+        self.n_expected = state["n_expected"]
+        if seed is not None:
+            self.random = np.random.RandomState(seed)
+
+    def save(self, save_path):
+        state = {"bgd_pool": self.bgd_pool, "n_expected": self.n_expected}
+        with open(save_path, "w") as open_file:
+            pickle.dump(state, open_file)
+
+########################################################################
+
 class expectation(object):
 
     def __init__(self, path):
@@ -110,44 +152,6 @@ class expectation(object):
     def poisson_prob(self, data):
         return self.poisson_test(data)[0]
 
-class BackgroundLocalWarmSpotPool(object):
-    def __init__(self, **kwargs):
-        seed = kwargs.pop("seed", None)
-        self.random = np.random.RandomState(seed)
-
-    def load_trials(self, infiles):
-        # read in all sky trials
-        trials = []
-        for file_name in infiles:
-            with open(file_name, "r") as open_file:
-                temp = cPickle.load(open_file)
-            trials.extend(temp)
-        print "Read in %d trials"%len(trials)
-
-        # in this mode we use all spots and draw a poisson number base on expecation
-        # the mean expected number of events above p-value threshold
-        self.n_expected = np.mean([len(t) for t in trials])
-        # the pool of background p-values
-        bgd_pool = np.concatenate([t["pVal"] for t in trials])
-        # clean if there are nans or infs
-        self.bgd_pool = bgd_pool[np.isfinite(bgd_pool)]
-
-    def get_pseudo_experiment(self):
-        nspots = self.random.poisson(self.n_expected)
-        return self.random.choice(self.bgd_pool, nspots, replace=False)
-
-    def load(self, load_path, seed=None):
-        with open(load_path, "r") as open_file:
-            state = pickle.load(open_file)
-        self.bgd_pool = state["bgd_pool"]
-        self.n_expected = state["n_expected"]
-        if seed is not None:
-            self.random = np.random.RandomState(seed)
-
-    def save(self, save_path):
-        state = {"bgd_pool": self.bgd_pool, "n_expected": self.n_expected}
-        with open(save_path, "w") as open_file:
-            pickle.dump(state, open_file)
 
 class signal_trials(object):
     def __init__(self, ntrials):
