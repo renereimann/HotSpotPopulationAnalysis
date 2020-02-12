@@ -19,8 +19,8 @@ parser.add_argument("--outfile",
 parser.add_argument("--log10pVal_threshold",
                     type=float,
                     required=False,
-                    default=3.0,
-                    help="Give the -log10(p-value) above that spots should not be considerd. Default: 3.0.")
+                    default=2.0,
+                    help="Give the -log10(p-value) above that spots should not be considerd. Default: 2.0.")
 parser.add_argument("--min_ang_dist",
                     type=float,
                     required=False,
