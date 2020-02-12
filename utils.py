@@ -9,10 +9,6 @@ from scipy.stats import poisson, binom, gamma
 from scipy.interpolate import UnivariateSpline
 
 from statistics import poisson_percentile, poisson_weight
-try:
-    from ps_analysis.plotting.hpa import counts_above_plot, gamma_fit_to_histogram, gamma_fit_contour, gamma_fit_survival_plot
-except:
-    pass
 
 class HPA_analysis(object):
     dtype = [("hpa_ts", float), ("log10p_thres", float), ("n_observed", int), ("n_expected", float)]
@@ -115,111 +111,41 @@ class expectation(object):
         return self.poisson_test(data)[0]
 
 class background_pool(object):
-
     def __init__(self, **kwargs):
-        self.min_ang_dist = kwargs.pop("min_ang_dist", 1.0)
-        self.cutoff       = kwargs.pop("cutoff",       2.0)
-        self.cut_on_nspot = kwargs.pop("cut_on_nspot", None)
-        seed              = kwargs.pop("seed",         None)
-        self.random       = np.random.RandomState(seed)
+        seed = kwargs.pop("seed", None)
+        self.random = np.random.RandomState(seed)
 
-    def load_trials(self, glob_path):
-        infiles = glob.glob(glob_path)
-        self.n_files = len(infiles)
-        trials = get_all_sky_trials(infiles, min_ang_dist=self.min_ang_dist)
+    def load_trials(self, infiles):
+        # read in all sky trials
+        trials = []
+        for file_name in infiles:
+            with open(file_name, "r") as open_file:
+                temp = cPickle.load(open_file)
+            trials.extend(temp)
+        print "Read in %d trials"%len(trials)
 
-        if self.cut_on_nspot is None:
-            # in this mode we use all spots and draw a poisson number base on expecation
-            self.spots_per_trial = [len(t) for t in trials]
-            bgd_pool = np.concatenate([t["pVal"] for t in trials])
-            self.n_trials = len(self.spots_per_trial)
-            self.n_expected = np.mean(self.spots_per_trial)
-        else:
-            min_threshold = []
-            for i, t in enumerate(trials):
-                # sort events and take first n spots
-                t.sort(order="pVal")
-                min_threshold.append(t["pVal"][0])
-                trials[i] = t[-self.cut_on_nspot:]
-            self.min_threshold = np.max(min_threshold)
-            self.n_trials = len(min_threshold)
-            trials = np.array(trials)
-            bgd_pool = trials["pVal"].ravel()
-
-
+        # in this mode we use all spots and draw a poisson number base on expecation
+        # the mean expected number of events above p-value threshold
+        self.n_expected = np.mean([len(t) for t in trials])
+        # the pool of background p-values
+        bgd_pool = np.concatenate([t["pVal"] for t in trials])
         # clean if there are nans or infs
-        self.n_pool = np.shape(bgd_pool)
         self.bgd_pool = bgd_pool[np.isfinite(bgd_pool)]
-        self.validate()
-
-    def validate(self):
-
-        if len(self.bgd_pool) != np.sum(np.isfinite(self.bgd_pool)):
-            raise ValueError("You have pValues in the list that are NaN."
-                         +"We already tried to catch them but it did not work!")
-
-        # The cut on n_spots has to be softwer than on the p-value threshold
-        if hasattr(self, "min_threshold") and self.min_threshold > self.cutoff:
-                raise ValueError("You want to use a min pValue threshold that is too small."
-                                 +"Some spot sets from scans do not reach the min pValue threshold."
-                                 +"The spot sets reach down to %f."%self.min_threshold)
-
-    def __str__(self):
-        doc = "Number of background all sky scan trial files: {self.n_files}\n".format( **locals() )
-        doc += "Number of background all sky scan trials: {self.n_trials}\n".format( **locals() )
-        doc += "Your background pool consists of {self.n_pool} spots\n".format( **locals() )
-        if hasattr(self, "min_threshold"):
-            doc += "The minimal allowed pValue threshold would be {self.min_threshold}\n".format( **locals() )
-
-        return doc
-
-    def plot_pool(self, savepath=None):
-        plt.figure()
-        plt.hist(self.bgd_pool, bins=np.linspace(self.cutoff, 8, 100))
-        plt.yscale("log", nonposy="clip")
-        plt.ylim(ymin=0.5)
-        if savepath is not None:
-            plt.savefig(savepath)
-            plt.close()
 
     def get_pseudo_experiment(self):
-        nspots = self.random.poisson(self.n_expected) if self.cut_on_nspot is None else self.cut_on_nspot
+        nspots = self.random.poisson(self.n_expected)
         return self.random.choice(self.bgd_pool, nspots, replace=False)
 
     def load(self, load_path, seed=None):
-        if not os.path.exists(load_path): raise IOError("load_path does not exist {load_path}".format(**locals()))
         with open(load_path, "r") as open_file:
             state = pickle.load(open_file)
-
-        self.min_ang_dist = state["min_ang_dist"]
-        self.cutoff       = state["cutoff"]
-        self.cut_on_nspot = state["cut_on_nspot"]
-        self.n_files      = state["n_files"]
-        self.n_trials     = state["n_trials"]
-        self.n_pool       = state["n_pool"]
-        self.bgd_pool     = state["bgd_pool"]
-        if self.cut_on_nspot is None:
-            self.spots_per_trial = state["spots_per_trial"]
-            self.n_expected      = state["n_expected"]
-        else:
-            self.min_threshold   = state["min_threshold"]
-        self.random       = np.random.RandomState(seed)
+        self.bgd_pool = state["bgd_pool"]
+        self.n_expected = state["n_expected"]
+        if seed is not None:
+            self.random = np.random.RandomState(seed)
 
     def save(self, save_path):
-        state = {}
-        state["min_ang_dist"] = self.min_ang_dist
-        state["cutoff"]       = self.cutoff
-        state["cut_on_nspot"] = self.cut_on_nspot
-        state["n_files"]      = self.n_files
-        state["n_trials"]     = self.n_trials
-        state["n_pool"]       = self.n_pool
-        state["bgd_pool"]     = self.bgd_pool
-        if self.cut_on_nspot is None:
-            state["spots_per_trial"] = self.spots_per_trial
-            state["n_expected"]      = self.n_expected
-        else:
-            state["min_threshold"]   = self.min_threshold
-
+        state = {"bgd_pool": self.bgd_pool, "n_expected": self.n_expected}
         with open(save_path, "w") as open_file:
             pickle.dump(state, open_file)
 
