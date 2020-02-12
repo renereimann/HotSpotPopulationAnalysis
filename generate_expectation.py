@@ -2,7 +2,6 @@
 
 import numpy as np
 import cPickle, os, argparse
-from scipy.interpolate import UnivariateSpline
 from data_types import LocalWarmSpotExpectation
 
 parser = argparse.ArgumentParser()
@@ -21,7 +20,7 @@ print "Run", os.path.realpath(__file__)
 print "Use arguments:", args
 print
 
-# read in stuff
+# read in all sky trials
 trials = []
 for file_name in args.infiles:
     with open(file_name, "r") as open_file:
