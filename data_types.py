@@ -97,10 +97,6 @@ class LocalWarmSpotExpectation(object):
         # we made the spline in log10
         return 10**self._log10_n_expected(logP_thres)
 
-class HPA_TS_value(object):
-    def __init__(self, **kwargs):
-        pass
-
 class HPA_TS_Parametrization(object):
     def __init__(self, **kwargs):
         pass
