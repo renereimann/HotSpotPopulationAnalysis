@@ -101,9 +101,7 @@ class HPA_TS_Parametrization(object):
     def __init__(self, **kwargs):
         pass
 
-class SingleSpotTrialPool(object):
-    def __init__(self, **kwargs):
-        pass
+
 
 class Sensitivity(object):
     def __init__(self, **kwargs):
