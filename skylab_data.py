@@ -127,6 +127,80 @@ class SkylabAllSkyScan(object):
 
         return spots
 
-class SkylabSingleSpotTrial(object):
+
+class SingleSpotTrialPool(object):
     def __init__(self, **kwargs):
         pass
+
+class SkylabSingleSpotTrial(object):
+    def __init__(self, path, **kwargs):
+        self.load(path)
+
+    def load(self, path):
+        with open(path, "r") as open_file:
+            job_args, data = cPickle.load(open_file)
+        self.declination = job_args.declination
+        sens, trials = data[self.declination]
+        self.mu_per_flux = np.mean(sens["mu"]/sens["flux"])
+        self.trials = trials[["n_inj", "TS"]]
+
+class SingleSpotTrialPool(object):
+    def __init__(self, **kwargs):
+        self.set_seed( kwargs.pop("seed", None))
+
+    def set_seed(self, seed):
+        self.random = np.random.RandomState(seed)
+
+    def load_trials(self, infiles, pValue_calculator):
+        """ Read in sensitivity trials from given file path
+        You get back a list of injection trials, detector weights and declination positions.
+        You should previde two lists of file names. In addition you have to give a pValue_calculator,
+        thus the local pValue can be calculated."""
+
+        trials = {}
+        for file_name in infiles:
+            sig_trial_file = SkylabSingleSpotTrial(file_name)
+            dec = sig_trial_file.declination
+            inj = sig_trial_file.trials
+            mu_per_flux = sig_trial_file.mu_per_flux
+
+            # local p-value
+            pVal = -np.log10(pValue_calculator(inj["TS"], dec))
+            # weights are 1/N for the moment, uniform distribution
+            w = np.ones(len(inj), dtype=np.float)/ len(inj)
+            inj = append_fields(inj, ["pVal", "w"], [pVal, w])
+            inj = inj[np.isfinite(inj["pVal"])]
+
+            if dec not in trials.keys():
+                trials[dec] = {"mu_per_flux": [], "inj": []}
+            trials[dec]["mu_per_flux"].append(mu_per_flux)
+            trials[dec]["inj"].append(inj)
+        for dec in trials.keys():
+            trials[dec]["mu_per_flux"] = np.mean(trials[dec]["mu_per_flux"])
+            trials[dec]["inj"] = np.concatenate(trials[dec]["inj"])
+        self.trials = trials
+
+    def get_random(self, fluxes):
+        # pick a random declination
+
+        n_sources = len(fluxes)
+        declinations = self.trials.keys()
+        # consider the zenith dependend detection efficiency (effective area)
+        dec_weight = [self.trias[d]["mu_per_flux"] for d in declinations]
+        # did not cover that we may not sample dec uniformly
+        decs = self.random.choice(declinations, len(fluxes), weights=dec_weights)
+        sig = []
+        for dec, flux in zip(decs, fluxes):
+            mu = self.trials[dec]["mu_per_flux"]*flux
+            w = poisson_weight(self.trials[dec]["inj"]["n_inj"], mu)
+            sig.append(self.random.choice(self.trials[dec]["inj"], weights=w))
+        return dec, sig
+
+    def save(self, save_path):
+        with open(save_path, "w") as open_file:
+            cPickle.dump(self.trials, open_file, protocol=2)
+
+    def load(self, load_path, **kwargs):
+        with open(load_path, "r") as open_file:
+            self.trials = cPickle.load(open_file)
+        self.set_seed( kwargs.pop("seed", None))
