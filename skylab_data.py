@@ -2,6 +2,7 @@ import cPickle as pickle
 import numpy as np
 import healpy
 from utils import deltaPsi
+from data_types import LocalWarmSpotList
 
 
 class SkylabAllSkyScan(object):
@@ -72,13 +73,13 @@ class SkylabAllSkyScan(object):
     def apply_seperation(spots, min_ang_dist):
         remove = []
         for i in np.arange(0, len(spots)):
-            ang_dist = deltaPsi(spots["dec"][i], spots["ra"][i], spots["dec"][i+1:], spots["ra"][i+1:])
+            ang_dist = deltaPsi(spots.list["dec"][i], spots.list["ra"][i], spots.list["dec"][i+1:], spots.list["ra"][i+1:])
             mask = np.where(ang_dist < np.radians(min_ang_dist))[0]
             if len(mask) == 0: continue
-            if any(spots["pVal"][mask+i+1] >= spots["pVal"][i]):
+            if any(spots.list["pVal"][mask+i+1] >= spots.list["pVal"][i]):
                 remove.append(i)
         mask = np.logical_not(np.in1d(range(len(spots)), remove))
-        return spots[mask]
+        return spots.list[mask]
 
 
     def get_local_warm_spots(self, log10p_threshold=2, min_ang_dist=1):
@@ -116,16 +117,13 @@ class SkylabAllSkyScan(object):
 
         # get pVal and direction of spots and sort them
         p_spots = log10p[warm_spots_idx]
-        theta_spots, ra_spots = healpy.pix2ang(nside, warm_spots_idx)
+        theta_spots, phi_spots = healpy.pix2ang(nside, warm_spots_idx)
 
         # fill into record-array
-        spots = np.recarray((len(p_spots),), dtype=[("dec", float), ("ra", float), ("pVal", float)])
-        spots["dec"] = np.pi/2-theta_spots
-        spots["ra"] = ra_spots
-        spots["pVal"] = p_spots
-        spots.sort(order="pVal")
+        spots = LocalWarmSpotList()
+        spots.add(theta=theta_spots, phi=phi_spots, pVal=p_spots)
 
-        SkylabAllSkyScan.apply_seperation(spots, min_ang_dist)
+        spots = SkylabAllSkyScan.apply_seperation(spots, min_ang_dist)
 
         return spots
 

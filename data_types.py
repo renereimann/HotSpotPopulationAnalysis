@@ -3,8 +3,28 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 class LocalWarmSpotList(object):
+    dtype = [("dec", float), ("ra", float), ("pVal", float)]
+
     def __init__(self, **kwargs):
-        self.warm_spot_list = []
+        self.warm_spot_list = np.recarray((0,), dtype=LocalWarmSpotList.dtpye)
+
+    def __len__(self):
+        return len(self.warm_spot_list)
+
+    def add(self, theta, phi, pVal):
+        spots = np.zeros(len(theta), dtype=LocalWarmSpotList.dtype)
+        spots["dec"] = np.pi/2-theta
+        spots["ra"] = phi
+        spots["pVal"] = pVal
+        self.warm_spot_list = np.concatenate([self.warm_spot_list, spots])
+        self.warm_spot_list.sort(order="pVal")
+
+    @property
+    def list(self):
+        return self.warn_spot_list
+    @list.setter
+    def list(self, value):
+        self.warn_spot_list = value
 
 class LocalWarmSpotExpectation(object):
     def __init__(self, **kwargs):
