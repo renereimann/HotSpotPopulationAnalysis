@@ -19,26 +19,19 @@ The procedure will start as following:
     * Infiles: List of skylab all_sky_scan file paths
     * Outfile: File path of the output file, where the list with local warm spots
         should be written.
-    * cutoff: Threshold in -log10(p-value) above which local warm spots are
+    * log10pVal_threshold: Threshold in -log10(p-value) above which local warm spots are
         considered.
+    * min_ang_dist: Minimal angular distance allowed between two local warm spots.
 
-2. check_poissonian_distribution_and_parametrizise_expectation.py
+2. generate_expectation.py
 
-    Will check for different thresholds if spots are poissonian distributed. Will produce plots and put them in a plot dir
+    Will check for different thresholds if spots are poissonian distributed.
     Will produce a parametrization / spline of the #spots expectation vs p-value threshold.
     The parametrization and the spline of this parametization are saved in pickle files.
-    parametrization_min_ang_dist_?.pickle and spline_expectation_min_ang_?dist_min_thres_?.py
 
     Parameters:
     * Infiles:
-    * Outputfiles:
-    * MinAngDist
-    * threshold
-    * plotdir
-    
-    You have to give the input and output directory, a minimal angular distance, the minimal -log10 p-value threshold and you can give a plot dir.
-
-
+    * Outputfile:
 
 3. Run calculate_max_local_pValues.py
     You have to give the input and output directory, the path to the expectation spline, a minimal angular distance and the minimal -log10 p-value threshold.
@@ -64,7 +57,7 @@ The procedure will start as following:
 7. Run other IpythonNotebook to plot the stuff. (ToDo: Make it a python class and script.)
 
 
-The script condor_chain should set up the complet work-flow. It uses a config file as input and creates directories, checks for basic inputs and produces dag files. You just run it once with the config file as arguments and then you just have to run the dag file in the correct order.    
+The script condor_chain should set up the complet work-flow. It uses a config file as input and creates directories, checks for basic inputs and produces dag files. You just run it once with the config file as arguments and then you just have to run the dag file in the correct order.
 
 
 The files utils.py and sensitivity_plots.py contain functions and classes that are used in several places. These are collections of functions.
@@ -110,7 +103,7 @@ Files
 
 drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  6 14:27 cluster/                                                                 #
 drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  7 10:13 external_data/                                                           # Digitized Data for reference
-drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  5 16:08 plotting/                                                                # 
+drwxrwxr-x 2 bootcamp bootcamp   4096 Feb  5 16:08 plotting/                                                                #
 drwxrwxr-x 7 bootcamp bootcamp 184320 Feb  6 20:51 test_data/                                                               # Test data for testing
 -rw-rw-r-- 1 bootcamp bootcamp   4978 Feb  7 18:53 README.md                                                                # README
 -rw-rw-r-- 1 bootcamp bootcamp  35149 Feb  5 15:08 LICENSE                                                                  # LICENSE

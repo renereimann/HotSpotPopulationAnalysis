@@ -206,7 +206,6 @@ class background_pool(object):
         with open(save_path, "w") as open_file:
             pickle.dump(state, open_file)
 
-
 class signal_trials(object):
     def __init__(self, ntrials):
         self.trials = np.empty(ntrials, dtype=[("n_inj", np.int),
