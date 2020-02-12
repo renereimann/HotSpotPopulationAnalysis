@@ -14,6 +14,32 @@ try:
 except:
     pass
 
+class HPA_analysis(object):
+    dtype = [("hpa_ts", float), ("log10p_thres", float), ("n_observed", int), ("n_expected", float)]
+
+    def __init__(self, expectation):
+        self.expectation = expectation
+
+    def scan(self, data):
+        r"""Calculate population p-values at all thresholds """
+        # data contains the sorted -log10(p-value) list
+
+        if len(data) < 1:
+            return 0., 0., 0, 0.
+
+        # n_observed in decending order, because p-value list is sorted
+        n_observed = np.arange(len(data), 0, -1)
+        # evaluate expectation at -log10(p-value) of data
+        n_expected = self.expectation(data)
+        # the poisson p-value
+        poisson_pValues = -poisson(n_expected).logsf(n_observed - 1) / np.log(10)
+
+        return poisson_pValues, data, n_observed, n_expected
+
+    def best_fit(self.data):
+        poisson_pValues, data, n_observed, n_expected = self.scan(data)
+        idx = np.argmax(poisson_pValues)
+        return np.array((poisson_pValues[idx], data[idx], n_observed[idx], n_expected[idx]), dtype=self.dtype)
 
 def deltaPsi(dec1, ra1, dec2, ra2):
     """Calculate angular distance between two directions.
@@ -78,20 +104,11 @@ class expectation(object):
         expect = self.__call__(data)
         logP = -poisson(expect).logsf(c - 1) / np.log(10)
 
-        return logP
+        return logP, data, c, expect
 
     def poisson_test(self, data):
-        r"""Calculate population p-values at all thresholds """
-
-        if len(data) < 1:
-            return 0., 0., 0, 0.
-
-        c = np.arange(len(data), 0, -1)
-        expect = self.__call__(data)
-        logP = -poisson(expect).logsf(c - 1) / np.log(10)
-
+        logP, data, c, expect = self.poisson_test_all_pVals(data)
         idx = np.argmax(logP)
-
         return logP[idx], data[idx], c[idx], expect[idx]
 
     def poisson_prob(self, data):
