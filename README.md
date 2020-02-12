@@ -30,14 +30,17 @@ The procedure will start as following:
     The parametrization and the spline of this parametization are saved in pickle files.
 
     Parameters:
-    * Infiles:
-    * Outputfile:
+    * Infiles: List of inputfile pathes. Inputfile pathes should contain lists of LocalWarmSpotLists.
+    * Outputfile: Location of the file where the LocalWarmSpotExpecation is saved.
 
-3. Run calculate_max_local_pValues.py
-    You have to give the input and output directory, the path to the expectation spline, a minimal angular distance and the minimal -log10 p-value threshold.
+3. calculate_max_local_pValues.py
 
-    Will generate background trials and calculate the HPA TS value for these background trials. A list of TS values will be the output in
-    max_local_pVal_min_ang_dist*_min_thres_*.pickle
+    Will generate background trials and calculate the HPA TS value for these background trials. A list of TS values will be the output.
+
+    Parameters:
+    * infiles: List of inputfile pathes. Inputfile pathes should contain lists of LocalWarmSpotLists
+    * outfile: File location where the list of HPA_analysis_result are saved.
+    * expectation: Location of the file where the LocalWarmSpotExpecation is saved.
 
 4. Run make_extrapolation.py
     You have to give the output from 3.
