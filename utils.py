@@ -36,7 +36,7 @@ class HPA_analysis(object):
 
         return poisson_pValues, data, n_observed, n_expected
 
-    def best_fit(self.data):
+    def best_fit(self, data):
         poisson_pValues, data, n_observed, n_expected = self.scan(data)
         idx = np.argmax(poisson_pValues)
         return np.array((poisson_pValues[idx], data[idx], n_observed[idx], n_expected[idx]), dtype=self.dtype)
