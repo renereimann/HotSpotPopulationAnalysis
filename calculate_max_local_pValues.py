@@ -2,7 +2,6 @@
 
 import os, cPickle, argparse
 import numpy as np
-from ps_analysis.hpa.utils import expectation
 from data_types import LocalWarmSpotExpectation
 from utils import HPA_analysis
 
@@ -38,8 +37,13 @@ print "Read in %d trials"%len(trials)
 expect = LocalWarmSpotExpectation(load_path=args.expectation)
 analysis = HPA_analysis(expect)
 
-hpa_results = np.concatenate([analysis.best_fit(data) for data in trials])
+hpa_results = []
+for data in trials:
+    result =  analysis.best_fit(data["pVal"])
+    hpa_results.append(result)
+hpa_results = np.concatenate([hpa_results])
 
+print hpa_results[:10]
 # save HPA values
 with open(args.outfile, "w") as open_file:
     cPickle.dump(hpa_results, open_file)
