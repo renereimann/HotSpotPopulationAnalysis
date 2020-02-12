@@ -3,7 +3,6 @@
 import numpy as np
 import cPickle, os, argparse
 from scipy.interpolate import UnivariateSpline
-from utils import counts_above_pval
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--infiles",
@@ -15,28 +14,13 @@ parser.add_argument("--outdir",
                     type=str,
                     default="test_data/from_poisson_test/",
                     help="Path of the output folder.")
-parser.add_argument("--cutoff",
-                    type=float,
-                    required=False,
-                    default=3.0,
-                    help="Give the -log10(p-value) above that spots should not be considerd. Default: 3.0.")
-parser.add_argument("--min_ang_dist",
-                    type=float,
-                    required=False,
-                    default=1.0,
-                    help="Give the minimal angular distance allowed between two local warm spots. Units: degrees. Default: 1.")
-parser.add_argument("--plotdir",
-                    type=str,
-                    required=False,
-                    default = None,
-                    help="Give plot path.")
 args = parser.parse_args()
 
 print "Run", os.path.realpath(__file__)
 print "Use arguments:", args
 print
 
-def counts_above_pval(trials, thres, plotting=False, verbose=False, plot_path=None, naive_expectation=None):
+def counts_above_pval(trials, thres, verbose=False, naive_expectation=None):
     """ Count the number of spots above a certain pValue threshold.
     You have to give the 'trials' and the threshold pValue as 'pVal'.
     Beside a fit of the poissonian also the ks-probability for a poissonian to data is performed.
@@ -55,10 +39,6 @@ def counts_above_pval(trials, thres, plotting=False, verbose=False, plot_path=No
     ks_poisson = kstest(counts_above, poisson(mean).cdf, alternative="greater")[1]
     N_trials = mean/np.power(10, -thres)
     ks_binom   = kstest(counts_above,  binom(int(N_trials), np.power(10, -thres)).cdf, alternative="greater")[1]
-
-    if plotting and (np.max(counts_above)-np.min(counts_above)) > 0 :
-        curr_plot = counts_above_plot(counts_above, thres)
-        curr_plot.plot(savepath=plot_path)
 
     if verbose:
         print "-log10(p):", thres
@@ -79,11 +59,7 @@ print "Read in %d files"%len(trials)
 # test poissonian distribution
 parametrization = []
 for p in np.linspace(2,7, 5*10+1):
-    kwargs = {}
-    if args.plotdir is not None:
-        kwargs["plot_path"] = os.path.join(args.plotdir, "HSP_test_poissonian_neg_logP_{p:.2f}_min_ang_dist_{args.min_ang_dist:.2f}.png".format(**locals()))
-        kwargs["plotting"] = True
-    parametrization.append(counts_above_pval(trials, thres=p, **kwargs))
+    parametrization.append(counts_above_pval(trials, thres=p))
 parametrization = np.array(parametrization)
 spline = UnivariateSpline(parametrization[:,0], np.log10(parametrization[:,1]+1e-20), s=0, k=1)
 
