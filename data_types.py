@@ -1,18 +1,19 @@
 import cPickle, os
 import numpy as np
 from scipy.interpolate import UnivariateSpline
+from scipy.stats import kstest, poisson, binom
 
 class LocalWarmSpotList(object):
     dtype = [("dec", float), ("ra", float), ("pVal", float)]
 
     def __init__(self, **kwargs):
-        self.warm_spot_list = np.recarray((0,), dtype=LocalWarmSpotList.dtpye)
+        self.warm_spot_list = np.recarray((0,), dtype=self.dtype)
 
     def __len__(self):
         return len(self.warm_spot_list)
 
     def add(self, theta, phi, pVal):
-        spots = np.zeros(len(theta), dtype=LocalWarmSpotList.dtype)
+        spots = np.zeros(len(theta), dtype=self.dtype)
         spots["dec"] = np.pi/2-theta
         spots["ra"] = phi
         spots["pVal"] = pVal
@@ -21,10 +22,10 @@ class LocalWarmSpotList(object):
 
     @property
     def list(self):
-        return self.warn_spot_list
+        return self.warm_spot_list
     @list.setter
     def list(self, value):
-        self.warn_spot_list = value
+        self.warm_spot_list = value
 
 class LocalWarmSpotExpectation(object):
     def __init__(self, **kwargs):
@@ -43,7 +44,7 @@ class LocalWarmSpotExpectation(object):
         self._parametrization = param
         self.spline()
 
-    def n_spots_above_threshold(trials, thres, verbose=False):
+    def n_spots_above_threshold(self, trials, thres, verbose=False):
         r""" Count the number of local warm spots above a -log10 pValue threshold.
         In addition calculated KS test p-values if distribution fits
         a poisson and binomial distribution.
@@ -71,12 +72,13 @@ class LocalWarmSpotExpectation(object):
 
         return thres, mean, ks_poisson, ks_binom
 
-    def generate(self, background_trials, log10p_steps=None):
+    def generate(self, bgd_trials, log10p_steps=None):
         parametrization = []
         if log10p_steps is None:
             log10p_steps = np.linspace(2,7, 5*10+1)
         for log10p in log10p_steps:
-            parametrization.append(counts_above_pval(background_trials, thres=log10p))
+            result = self.n_spots_above_threshold(bgd_trials, thres=log10p)
+            parametrization.append(result)
         self._parametrization = np.array(parametrization)
         self.spline()
 
