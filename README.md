@@ -42,6 +42,15 @@ The procedure will start as following:
     * outfile: File location where the list of HPA_analysis_result are saved.
     * expectation: Location of the file where the LocalWarmSpotExpecation is saved.
 
+4. prepare_bgd_pool.py
+    Generates a background pool object and saves it. Needed for signal trial generation.
+
+    Parameters:
+    * infiles: List of input files. Input files should contain a list of extracted background populations.
+    * outfile: Path of the output file.
+
+5. prepare_signal_pool.py
+
 4. Run make_extrapolation.py
     You have to give the output from 3.
 
@@ -114,7 +123,7 @@ drwxrwxr-x 7 bootcamp bootcamp 184320 Feb  6 20:51 test_data/                   
 -rwxrwxr-x 1 bootcamp bootcamp   1943 Feb  6 15:00 get_warm_spots_from_skylab_all_sky_scans.py                              # 1. get warm spots from all sky scans
 -rwxrwxr-x 1 bootcamp bootcamp   2582 Feb  6 16:35 generate_expectation.py                                                  # 2. generate expectation spline for background populations
 -rwxrwxr-x 1 bootcamp bootcamp   1892 Feb  5 15:10 calculate_max_local_pValues.py                                           # 3. Generate / calculate background HPA TS
--rw-rw-r-- 1 bootcamp bootcamp   1408 Feb  6 10:20 make_extrapolation.py                                                    # 4. Fit / extrapolate background HPA TS
+(-rw-rw-r-- 1 bootcamp bootcamp   1408 Feb  6 10:20 make_extrapolation.py                                                    # 4. Fit / extrapolate background HPA TS)
 -rw-rw-r-- 1 bootcamp bootcamp    411 Feb  5 15:10 prepare_bgd_pool.py                                                      # 5. generate a background pool
 -rw-rw-r-- 1 bootcamp bootcamp    807 Feb  5 15:10 prepare_signal_pool.py                                                   # 5. generate a signal pool
 -rw-rw-r-- 1 bootcamp bootcamp   3750 Feb  7 18:43 hpa_firesong_signal_trials.py                                            # 6. Generate signal HPA TS trials, FIRESONG source count distributions
@@ -127,3 +136,8 @@ drwxrwxr-x 7 bootcamp bootcamp 184320 Feb  6 20:51 test_data/                   
                                                    skylab_data.py                                                           # classes interacting with skylab
                                                    data_types.py                                                            # classes with data types
 -rw-rw-r-- 1 bootcamp bootcamp  23233 Feb  6 09:53 SingleSpotTS2pValueParametrization.py                                    # class for TS -> pValue conversion (only used in generate signal pool)
+
+# add plotting for
+* poisson test (has been removed for now), counts above plot
+* BackgroundLocalWarmSpotPool, plot_pool, histogram of self.bgd_pool
+

@@ -1,7 +1,24 @@
 #!/usr/bin/env python
 
-from ps_analysis.hpa.utils import background_pool
+import os, argparse
+from utils import BackgroundLocalWarmSpotPool
 
-bgd_pool = background_pool(seed=1234, min_ang_dist=1., cutoff=2., cut_on_nspot=None) # 250
-bgd_pool.load_trials( "/data/user/reimann/2017_10/HPA/local_spots/mc_trials/all_sky_population_bgd_trials_cutoff_pVal_2.0_seed_*X.pickle" )
-bgd_pool.save("/data/user/reimann/2017_10/HPA/bgd_pool_cutoff_2_min_ang_dist_1_cut_on_nspot_None.pickle")
+parser = argparse.ArgumentParser()
+parser.add_argument("--infiles",
+                    type=str,
+                    nargs='+',
+                    default=["test_data/extracted_background_populations/all_sky_population_bgd_trial_test.pickle"],
+                    help="List of input files. Input files should contain a list of extracted background populations.")
+parser.add_argument("--outfile",
+                    type=str,
+                    default="test_data/background_pool.pickle",
+                    help="Path of the output file.")
+args = parser.parse_args()
+
+print "Run", os.path.realpath(__file__)
+print "Use arguments:", args
+print
+
+bgd_pool = BackgroundLocalWarmSpotPool(seed=1234)
+bgd_pool.load_trials(args.infiles)
+bgd_pool.save(args.outfile)

@@ -110,7 +110,7 @@ class expectation(object):
     def poisson_prob(self, data):
         return self.poisson_test(data)[0]
 
-class background_pool(object):
+class BackgroundLocalWarmSpotPool(object):
     def __init__(self, **kwargs):
         seed = kwargs.pop("seed", None)
         self.random = np.random.RandomState(seed)
