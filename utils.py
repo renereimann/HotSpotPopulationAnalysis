@@ -154,7 +154,7 @@ class SignalSimulation(object):
     def __init__(self, **kwargs):
         self.random = np.random.RandomState(kwargs.pop("seed", None))
         self.background_pool = kwargs.pop("background_pool", None)
-        self.single_spot_pool = kwargs.pop("signle_spot_pool", None)
+        self.single_spot_pool = kwargs.pop("single_spot_pool", None)
         self.source_count_dist = kwargs.pop("source_count_dist", None)
         self.min_ang_dist = np.radians(kwargs.pop("min_ang_dist", 1.))
         self.sinDec_range = np.sin(np.radians(kwargs.pop("dec_range", [-3,90])))
