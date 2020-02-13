@@ -3,7 +3,7 @@ try:
 except:
     pass
 
-from numpy.lib.recfunctions import append_fields
+
 
 class signal_pool(object):
     def __init__(self, **kwargs):
