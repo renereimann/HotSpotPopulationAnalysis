@@ -131,9 +131,7 @@ drwxrwxr-x 7 bootcamp bootcamp 184320 Feb  6 20:51 test_data/                   
 -rwxrwxr-x 1 bootcamp bootcamp   1892 Feb  5 15:10 calculate_max_local_pValues.py                                           # 3. Generate / calculate background HPA TS
 -rw-rw-r-- 1 bootcamp bootcamp    411 Feb  5 15:10 prepare_bgd_pool.py                                                      # 4. generate a background pool
 -rw-rw-r-- 1 bootcamp bootcamp    807 Feb  5 15:10 prepare_signal_pool.py                                                   # 5. generate a signal pool
--rw-rw-r-- 1 bootcamp bootcamp   3750 Feb  7 18:43 hpa_firesong_signal_trials.py                                            # 6. Generate signal HPA TS trials, FIRESONG source count distributions
--rwxrwxr-x 1 bootcamp bootcamp   3487 Feb  6 10:20 hpa_signal_trials.py                                                     # 6. Generate signal HPA TS trials, equal flux source count distributions
--rwxrwxr-x 1 bootcamp bootcamp   4733 Feb  6 09:58 hpa_SourceUniverse_signal_trials.py                                      # 6. Generate signal HPA TS trials, SourceUnivers source count distr
+-rw-rw-r-- 1 bootcamp bootcamp   3750 Feb  7 18:43 hpa_firesong_signal_trials.py                                            # 6. Generate signal HPA TS trials, equal flux sources or FIRESONG source count distributions
 (-rw-rw-r-- 1 bootcamp bootcamp   1408 Feb  6 10:20 make_extrapolation.py                                                    # 4. Fit / extrapolate background HPA TS)
 -rw-rw-r-- 1 bootcamp bootcamp   3366 Feb  7 18:38 calculate_sensitivity.py                                                 # 7. Calculate sensitivity
 -rw-rw-r-- 1 bootcamp bootcamp   2539 Feb  6 10:21 unblind_result.py                                                        # 8. The final unblinded value
