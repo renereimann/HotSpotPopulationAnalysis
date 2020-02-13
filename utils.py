@@ -4,10 +4,11 @@
 import cPickle as pickle
 import glob, os, re, argparse
 import numpy as np
+from numpy.lib.recfunctions import append_fields
 
 from scipy.stats import poisson
 from scipy.interpolate import UnivariateSpline
-
+from skylab_data import SkylabSingleSpotTrial
 from statistics import poisson_percentile, poisson_weight
 
 class HPA_analysis(object):
@@ -36,33 +37,6 @@ class HPA_analysis(object):
         poisson_pValues, data, n_observed, n_expected = self.scan(data)
         idx = np.argmax(poisson_pValues)
         return np.array((poisson_pValues[idx], data[idx], n_observed[idx], n_expected[idx]), dtype=self.dtype)
-
-def deltaPsi(dec1, ra1, dec2, ra2):
-    """Calculate angular distance between two directions.
-
-    Parameters
-    ----------
-    dec1: float, array_like
-        Declination of first direction. Units: radian
-    ra1: float, array_like
-        Right ascension of first direction. Units: radian
-    dec2: float, array_like
-        Declination of second direction. Units: radian
-    ra2: float, array_like
-        Right ascension of second direction. Units: radian
-
-    Returns
-    -------
-    ndarray
-        Angular distance. Units: radian
-    """
-
-    cDec1 = np.cos(dec1)
-    cDec2 = np.cos(dec2)
-    cosTheta = cDec1*np.cos(ra1)*cDec2*np.cos(ra2) + cDec1*np.sin(ra1)*cDec2*np.sin(ra2) + np.sin(dec1)*np.sin(dec2)
-    cosTheta[cosTheta>1.] = 1.
-    cosTheta[cosTheta<-1.] = -1.
-    return np.arccos(cosTheta)
 
 class BackgroundLocalWarmSpotPool(object):
     def __init__(self, **kwargs):
@@ -113,8 +87,7 @@ class SingleSpotTrialPool(object):
     def load_trials(self, infiles, pValue_calculator):
         """ Read in sensitivity trials from given file path
         You get back a list of injection trials, detector weights and declination positions.
-        You should previde two lists of file names. In addition you have to give a pValue_calculator,
-        thus the local pValue can be calculated."""
+        In addition you have to give a pValue_calculator, thus the local pValue can be calculated."""
 
         trials = {}
         for file_name in infiles:
@@ -139,29 +112,38 @@ class SingleSpotTrialPool(object):
             trials[dec]["inj"] = np.concatenate(trials[dec]["inj"])
         self.trials = trials
 
-    def get_random(self, fluxes):
-        # pick a random declination
+    def get_random_trial(self, fluxes, decs):
+        r"""Picks random trials for sources at declination `decs` with fluxes `fluxes`.
+        Internal: We pick the closes declination for which trials exist and convert the
+        flux into mu taking into account the detector acceptance. Trials are picked randomly
+        using a poisson expectation on mu.
 
-        n_sources = len(fluxes)
-        declinations = self.trials.keys()
-        # consider the zenith dependend detection efficiency (effective area)
-        dec_weight = [self.trias[d]["mu_per_flux"] for d in declinations]
-        # did not cover that we may not sample dec uniformly
-        decs = self.random.choice(declinations, len(fluxes), weights=dec_weights)
+        Parameters:
+        * fluxes: array_like
+            List of neutrino flux per source. Units: ???
+        * decs: array_like
+            List of source declinations
+
+        """
         sig = []
-        for dec, flux in zip(decs, fluxes):
-            mu = self.trials[dec]["mu_per_flux"]*flux
-            w = poisson_weight(self.trials[dec]["inj"]["n_inj"], mu)
-            sig.append(self.random.choice(self.trials[dec]["inj"], weights=w))
-        return dec, sig
+        for flux, dec in zip(fluxes, decs):
+            # we take the trials from the closest declination
+            nearest_dec = self.trials.keys()[np.argmin(np.abs(self.trials.keys() - dec))]
+            # by converting from flux to mu we take into account the detector efficiency
+            mu = self.trials[nearest_dec]["mu_per_flux"]*flux
+            # we assume that mu is poisson distributed, so we chose the weights accordingly
+            w = poisson_weight(self.trials[nearest_dec]["inj"]["n_inj"], mu)
+            # get a random trial following the weights
+            sig.append(self.random.choice(self.trials[nearest_dec]["inj"], weights=w))
+        return sig
 
     def save(self, save_path):
         with open(save_path, "w") as open_file:
-            cPickle.dump(self.trials, open_file, protocol=2)
+            pickle.dump(self.trials, open_file, protocol=2)
 
     def load(self, load_path, **kwargs):
         with open(load_path, "r") as open_file:
-            self.trials = cPickle.load(open_file)
+            self.trials = pickle.load(open_file)
         self.set_seed( kwargs.pop("seed", None))
 
 ########################################################################
