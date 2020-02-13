@@ -101,6 +101,7 @@ class SingleSpotTrialPool(object):
             # weights are 1/N for the moment, uniform distribution
             w = np.ones(len(inj), dtype=np.float)/ len(inj)
             inj = append_fields(inj, ["pVal", "w"], [pVal, w])
+            # handle NaNs and infs
             inj = inj[np.isfinite(inj["pVal"])]
 
             if dec not in trials.keys():
