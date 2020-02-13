@@ -101,17 +101,28 @@ analysis = HPA_analysis(expect)
 print("Start generating trials ...")
 
 t0 = time.time()
-out = signal_trials(args.n_iter)
+out = []
 hottest_source = []
 n_above = []
-while out.need_more_trials():
+while len(out) < args.n_iter:
     data = sim.get_pseudo_experiment(**kwargs)
     hottest_source.append(np.max(data))
     n_above.append(data >= 6.542) # 5 sigma p-values
     pseudo_result = analysis.best_fit(data)
-    out.add_trial(n_tot_inj, pseudo_result)
+    out.append(np.array((n_tot_inj, ) + pseudo_result, dtype=[("n_inj", np.int),
+                                               ("logP", np.float),
+                                               ("pVal", np.float),
+                                               ("count", np.int),
+                                               ("exp", np.float)]))
 print("... done.")
-out.clean_nans()
+out = np.concatenate(out)
+# double check that there are no nan pvalues
+m = np.isfinite(out["logP"])
+if np.any(~m):
+    print("Found infinite logP: {0:d} of {1:d}".format(np.count_nonzero(~m), len(m)))
+    for n in out.dtype.names:
+        print(out[~m][n])
+out = out[m]
 print(time.time()-t0, "sec")
 
 # save stuff

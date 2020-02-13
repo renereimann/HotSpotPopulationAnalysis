@@ -145,3 +145,4 @@ drwxrwxr-x 7 bootcamp bootcamp 184320 Feb  6 20:51 test_data/                   
 * poisson test (has been removed for now), counts above plot
 * BackgroundLocalWarmSpotPool, plot_pool, histogram of self.bgd_pool
 * signal pool_ plot_sinDec_distribution, plot_mu_2_flux
+* signal_trials, plot_ninj
