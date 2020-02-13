@@ -1,9 +1,34 @@
 import cPickle as pickle
 import numpy as np
 import healpy
-from utils import deltaPsi
 from data_types import LocalWarmSpotList
 
+def deltaPsi(dec1, ra1, dec2, ra2):
+    """Calculate angular distance between two directions.
+
+    Parameters
+    ----------
+    dec1: float, array_like
+        Declination of first direction. Units: radian
+    ra1: float, array_like
+        Right ascension of first direction. Units: radian
+    dec2: float, array_like
+        Declination of second direction. Units: radian
+    ra2: float, array_like
+        Right ascension of second direction. Units: radian
+
+    Returns
+    -------
+    ndarray
+        Angular distance. Units: radian
+    """
+
+    cDec1 = np.cos(dec1)
+    cDec2 = np.cos(dec2)
+    cosTheta = cDec1*np.cos(ra1)*cDec2*np.cos(ra2) + cDec1*np.sin(ra1)*cDec2*np.sin(ra2) + np.sin(dec1)*np.sin(dec2)
+    cosTheta[cosTheta>1.] = 1.
+    cosTheta[cosTheta<-1.] = -1.
+    return np.arccos(cosTheta)
 
 class SkylabAllSkyScan(object):
     r"""This class represents a single all sky scan in skylab.
@@ -133,8 +158,9 @@ class SkylabSingleSpotTrial(object):
 
     def load(self, path):
         with open(path, "r") as open_file:
-            job_args, data = cPickle.load(open_file)
+            job_args, data = pickle.load(open_file)
         self.declination = job_args.declination
-        sens, trials = data[self.declination]
+        sens = data[self.declination][0]
+        trials = data[self.declination][1]
         self.mu_per_flux = np.mean(sens["mu"]/sens["flux"])
         self.trials = trials[["n_inj", "TS"]]
