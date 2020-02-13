@@ -150,6 +150,53 @@ class SingleSpotTrialPool(object):
             self.trials = pickle.load(open_file)
         self.set_seed( kwargs.pop("seed", None))
 
+class SignalSimulation(object):
+    def __init__(self, **kwargs):
+        self.random = np.random.RandomState(kwargs.pop("seed", None))
+        self.background_pool = kwargs.pop("background_pool", None)
+        self.single_spot_pool = kwargs.pop("signle_spot_pool", None)
+        self.source_count_dist = kwargs.pop("source_count_dist", None)
+        self.min_ang_dist = np.radians(kwargs.pop("min_ang_dist", 1.))
+        self.sinDec_range = np.sin(np.radians(kwargs.pop("dec_range", [-3,90])))
+        self.log10pVal_threshold = kwargs.pop("log10pVal_threshold", 2.)
+        self.solid_angle_hemisphere = 2*np.pi*(max(self.sinDec_range)-min(self.sinDec_range))
+        self.solid_angle_per_source = np.pi*self.min_ang_dist**2
+
+    def get_signal(self, **kwargs):
+        r"""Generate a single Pseud Experiment by sampling fluxes from
+        the source count distribution and converting it to local warm spot
+        p-values."""
+
+        fluxes = self.source_count_dist.get_fluxes(**kwargs)
+        # sources are uniformly distributed on the sky
+        decs = np.arcsin(np.random.uniform(-1., 1., len(fluxes)))
+        injs = self.single_spot_pool.get_random_trial(fluxes, decs)
+        return sig["pVal"], sig["n_inj"].sum()
+
+    def get_pseudo_experiment(self, **kwargs):
+        r"""Generates a pseudo experiment including signal and background.
+        kwargs are passed to the get_signal function which further passes the
+        kwargs to the source count distribution."""
+        sig, n_tot_inj = self.get_signal(**kwargs)
+        data = self.background_pool.get_pseudo_experiment()
+
+        # mearge signal into background
+        for i, s in enumerate(sig):
+            prob = len(data)*self.solid_angle_per_source/self.solid_angle_hemisphere
+            # check is two sources are to close
+            if self.random.uniform(0., 1.) < prob:
+                compare_idx = self.random.randint(len(data))
+                # take the larger -log10(p-value)
+                if data[compare_idx] < s:
+                    data[compare_idx] = s
+            else:
+                data = np.concatenate([data, [s]])
+
+        # Threshold cut, no pValues below  min_thres
+        data = data[data >= self.log10pVal_threshold]
+        # sort the data
+        data = np.sort(data)
+        return data
 
 ########################################################################
 
