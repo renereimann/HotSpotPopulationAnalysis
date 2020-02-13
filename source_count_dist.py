@@ -1,12 +1,14 @@
+import numpy as np
+
 class SourceCountDistribution(object):
     def __init__(self):
         pass
 
     def __str__(self):
-        return NotImplemented
+        raise NotImplementedError()
 
     def get_fluxes(self, **kwargs):
-        return NotImplemented
+        raise NotImplementedError()
 
 class SourceCountDistEqualFluxAtEarth(SourceCountDistribution):
     def __init__(self, **kwargs):
@@ -14,7 +16,7 @@ class SourceCountDistEqualFluxAtEarth(SourceCountDistribution):
         self.n_sources = kwargs.pop("n_sources", None)
 
     def __str__(self):
-        return "phi_inj_%s_nsrc_%s"%(self.source_flux, self.n_source)
+        return "phi_inj_%s_nsrc_%s"%(self.source_flux, self.n_sources)
 
     def get_fluxes(self, **kwargs):
         return self.source_flux*np.ones(self.n_sources)
