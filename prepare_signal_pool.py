@@ -12,6 +12,6 @@ additional_file = sorted(glob.glob(os.path.join(indir_sens2, "sens_*.pickle")))
 
 pVal = SingleSpotTS2pValueParametrization(path="test_data/parametrization_TS_to_p_value_exponential_fit_above_threshold_5_from_mc.param")
 sig_pool = signal_pool(seed=None)
-sig_pool.load_trials(sens_files, additional_file, pValue_calculator=pVal)
+sig_pool.load_trials(sens_files, pValue_calculator=pVal)
 
 sig_pool.save("/data/user/reimann/2017_10/HPA/signal_pool.cPickle")
