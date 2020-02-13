@@ -18,7 +18,7 @@ class HPA_analysis(object):
         # data contains the sorted -log10(p-value) list
 
         if len(data) < 1:
-            return 0., 0., 0, 0.
+            return np.array((0., 0., 0, 0.), dtype=self.dtype)
 
         # n_observed in decending order, because p-value list is sorted
         n_observed = np.arange(len(data), 0, -1)
@@ -133,9 +133,10 @@ class SingleSpotTrialPool(object):
             mu = self.trials[nearest_dec]["mu_per_flux"]*flux
             # we assume that mu is poisson distributed, so we chose the weights accordingly
             w = poisson_weight(self.trials[nearest_dec]["inj"]["n_inj"], mu)
+            w /= np.sum(w)
             # get a random trial following the weights
-            sig.append(self.random.choice(self.trials[nearest_dec]["inj"], weights=w))
-        return np.concatenate(sig)
+            sig.append(self.random.choice(self.trials[nearest_dec]["inj"], p=w))
+        return np.concatenate([sig])
 
     def save(self, save_path):
         with open(save_path, "w") as open_file:
@@ -167,7 +168,7 @@ class SignalSimulation(object):
         # sources are uniformly distributed on the sky
         decs = np.arcsin(np.random.uniform(-1., 1., len(fluxes)))
         injs = self.single_spot_pool.get_random_trial(fluxes, decs)
-        return sig["pVal"], sig["n_inj"].sum()
+        return injs["pVal"], np.sum(injs["n_inj"])
 
     def get_pseudo_experiment(self, **kwargs):
         r"""Generates a pseudo experiment including signal and background.
@@ -192,4 +193,4 @@ class SignalSimulation(object):
         data = data[data >= self.log10pVal_threshold]
         # sort the data
         data = np.sort(data)
-        return data
+        return data, n_tot_inj
