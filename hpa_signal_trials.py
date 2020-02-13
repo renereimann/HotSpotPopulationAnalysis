@@ -2,7 +2,7 @@
 
 import cPickle, os, argparse, time
 import numpy as np
-from utils import HPA_analysis, BackgroundLocalWarmSpotPool, SingleSpotTrialPool, SignalSimulation, signal_trials
+from utils import HPA_analysis, BackgroundLocalWarmSpotPool, SingleSpotTrialPool, SignalSimulation
 from data_types import LocalWarmSpotExpectation
 from source_count_dist import SourceCountDistEqualFluxAtEarth, SourceCountDistFIRESONG
 
@@ -55,8 +55,6 @@ args = parser.parse_args()
 print "Run", os.path.realpath(__file__)
 print "Use arguments:", args
 print
-
-
 
 RNG = np.random.RandomState(args.seed)
 seed_bgd, seed_sig, seed_source_count = RNG.randint(0, np.iinfo(np.uint32).max, size=3)
@@ -129,7 +127,7 @@ print(time.time()-t0, "sec")
 print("Save results")
 config = str(source_count)
 with open(os.path.join(args.outdir,"HPA_signal_trials_{config}.npy".format(**locals())), "w") as open_file:
-    np.save(open_file, out.trials)
+    np.save(open_file, out)
 with open(os.path.join(args.outdir,"HPA_signal_trials_{config}.args".format(**locals())), "w") as open_file:
     cPickle.dump(args, open_file, protocol=2)
 with open(os.path.join(args.outdir,"HPA_signal_trials_{config}_hottest_source.cPickle".format(**locals())), "w") as open_file:
