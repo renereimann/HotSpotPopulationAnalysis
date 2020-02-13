@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 
-#import matplotlib.pyplot as plt
 import cPickle as pickle
-import glob, os, re, argparse
 import numpy as np
 from numpy.lib.recfunctions import append_fields
-
 from scipy.stats import poisson
-from scipy.interpolate import UnivariateSpline
+from statistics import poisson_weight
 from skylab_data import SkylabSingleSpotTrial
-from statistics import poisson_percentile, poisson_weight
 
 class HPA_analysis(object):
     dtype = [("hpa_ts", float), ("log10p_thres", float), ("n_observed", int), ("n_expected", float)]
