@@ -128,6 +128,9 @@ class SingleSpotTrialPool(object):
         """
         sig = []
         for flux, dec in zip(fluxes, decs):
+            # can not detect sources outside the simulated range
+            if dec < min(self.trials.keys()) or dec > max(self.trials.keys()):
+                continue
             # we take the trials from the closest declination
             nearest_dec = self.trials.keys()[np.argmin(np.abs(self.trials.keys() - dec))]
             # by converting from flux to mu we take into account the detector efficiency
@@ -136,7 +139,7 @@ class SingleSpotTrialPool(object):
             w = poisson_weight(self.trials[nearest_dec]["inj"]["n_inj"], mu)
             # get a random trial following the weights
             sig.append(self.random.choice(self.trials[nearest_dec]["inj"], weights=w))
-        return sig
+        return np.concatenate(sig)
 
     def save(self, save_path):
         with open(save_path, "w") as open_file:
@@ -146,6 +149,7 @@ class SingleSpotTrialPool(object):
         with open(load_path, "r") as open_file:
             self.trials = pickle.load(open_file)
         self.set_seed( kwargs.pop("seed", None))
+
 
 ########################################################################
 
