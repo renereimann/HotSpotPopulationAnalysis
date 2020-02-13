@@ -200,53 +200,6 @@ class SignalSimulation(object):
 
 ########################################################################
 
-class expectation(object):
-
-    def __init__(self, path):
-        # read in expectation spline
-        if not os.path.exists(path):
-            raise ValueError("You try to load a spline from a path that does not exist. You specified: {path}".format(**locals()))
-        with open(path, "r") as open_file:
-            self.spl = pickle.load(open_file)
-        try:
-            self.spl(10.)
-        except:
-            print("Backup solution")
-            with open(path.replace("spline_expectation", "parametrization_expectiation"), "r") as open_file:
-                parametrization = pickle.load(open_file)
-            self.spl = UnivariateSpline(parametrization[:,0], np.log10(parametrization[:,1]+1e-20), s=0, k=1)
-
-        self.path = path
-
-    def __str__(self):
-        print("Read in expectation spline from {self.path}".format(**locals()))
-        print("Expectation for a pVal threshold of [2,3,4,5,6] is", self.__call__(range(2,7,1)))
-
-    def __call__(self, x):
-        # the spline is saved as log10(expectation) thus we have to return 10^spline
-        return np.power(10, self.spl(x))
-
-    def poisson_test_all_pVals(self, data):
-        r"""Calculate population p-values at all thresholds """
-
-        if len(data) < 1:
-            return 0., 0., 0, 0.
-
-        c = np.arange(len(data), 0, -1)
-        expect = self.__call__(data)
-        logP = -poisson(expect).logsf(c - 1) / np.log(10)
-
-        return logP, data, c, expect
-
-    def poisson_test(self, data):
-        logP, data, c, expect = self.poisson_test_all_pVals(data)
-        idx = np.argmax(logP)
-        return logP[idx], data[idx], c[idx], expect[idx]
-
-    def poisson_prob(self, data):
-        return self.poisson_test(data)[0]
-
-
 class signal_trials(object):
     def __init__(self, ntrials):
         self.trials = np.empty(ntrials, dtype=[("n_inj", np.int),
