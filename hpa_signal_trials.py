@@ -2,13 +2,12 @@
 
 import cPickle, os, argparse, time
 import numpy as np
-from ps_analysis.hpa.utils import expectation, BackgroundLocalWarmSpotPool, signal_pool, signal_trials, signal_pool_SourceUnivers, signal_pool_FIRESONG
+from utils import HPA_analysis, BackgroundLocalWarmSpotPool, SingleSpotTrialPool, SignalSimulation, signal_trials
+from data_types import LocalWarmSpotExpectation
+from source_count_dist import SourceCountDistEqualFluxAtEarth, SourceCountDistFIRESONG
 
 # get arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("config_id",
-                    type=int,
-                    help="Job config_id to perform on")
 parser.add_argument("--infile_signal",
                         type=str,
                         required=True,
@@ -33,6 +32,12 @@ parser.add_argument("--seed",
                     type=int,
                     default=None,
                     help="Number of iteration to perform for these settings.")
+parser.add_argument("--nsrc",
+                    type=int,
+                    help="Job config_id to perform on")
+parser.add_argument("--n_inj",
+                    type=int,
+                    help="Job config_id to perform on")
 parser.add_argument("--infile_firesong",
                     type=str,
                     required=True,
@@ -47,93 +52,71 @@ parser.add_argument("--density",
                     help="Density of sources.")
 args = parser.parse_args()
 
-for k, v in args._get_kwargs():
-    print "%15s"%k, v
+print "Run", os.path.realpath(__file__)
+print "Use arguments:", args
+print
 
-def job_num_2_nsrc_ninj_nsrcIdx(job_num):
-    """ Convert a job number to number of sources
-    and number of injected events"""
 
-    k = 2
-    j, i = divmod(job_num // k, 50)
-    nsrc = 2**j
-    n_inj = float((i + 1)**2) / nsrc
-
-    return nsrc, n_inj, i
-
-nsrc, n_inj, nsrcIdx = job_num_2_nsrc_ninj_nsrcIdx(args.config_id)
-print("Job number: {0:d}".format(args.config_id))
-print("Number of sources for estimation: {0:d}".format(nsrc))
-print("Mean number of injected events per source: {0:.3f}".format(n_inj))
-print(33*"-")
 
 RNG = np.random.RandomState(args.seed)
-seed_bgd_pool, seed_sig_pool, seed_source_universe = RNG.randint(0, np.iinfo(np.uint32).max, size=3)
+seed_bgd, seed_sig, seed_source_count = RNG.randint(0, np.iinfo(np.uint32).max, size=3)
 
-# read expectation spline
 print("Load expectation ...")
-expect = expectation(args.expectation)
+expect = LocalWarmSpotExpectation(args.expectation)
 
-# get background pool
 print("Load background pool ...")
 bgd_pool = BackgroundLocalWarmSpotPool()
-bgd_pool.load( args.infile_background, seed=seed_bgd_pool)
+bgd_pool.load(args.infile_background, seed=seed_bgd)
 
-# get signal pool
 print("Load signal pool ...")
-sig_pool = signal_pool()
-sig_pool = signal_pool_SourceUnivers()
-sig_pool = signal_pool_FIRESONG()
+sig_pool = SingleSpotTrialPool()
 sig_pool.load(args.infile_signal, seed=seed_sig_pool)
-sig_pool.get_signal_weights(n_inj)
-sig_pool.load_SourceUnivers_representation(args.infile_source_universe, seed_source_universe)
-sig_pool.load_firesong_representation(args.infile_firesong)
 
-#### start generating stuff
-print("Start generating trials ...")
-out = signal_trials(args.n_iter)
-t0 = time.time()
-hottest_source = []
-n_above = []
-while out.need_more_trials():
-    bgd            = bgd_pool.get_pseudo_experiment()
-    sig, n_tot_inj = sig_pool.get_pseudo_experiment(nsrc)
-    sig, n_tot_inj = sig_pool.get_pseudo_experiment(density=args.density)
-
-      solid_angle_hemisphere = 2*np.pi*(np.sin(np.pi/2) - np.sin(np.radians(-3)))
-    solid_angle_per_source = np.pi*np.radians(bgd_pool.min_ang_dist)**2
-
-    data = bgd
-    for i, s in enumerate(sig):
-        prob = len(data)*solid_angle_per_source/solid_angle_hemisphere
-        if RNG.uniform(0, 1) < prob:
-            compare_idx = RNG.randint(len(data))
-            if data[compare_idx] < s:
-                data[compare_idx] = s
-        else:
-            data = np.concatenate([data, [s]])
-
-    # Threshold cut, no pValues below  min_thres
-    data = np.sort(data)
-    data = data[data >= bgd_pool.cutoff]
-    hottest_source.append(np.max(data))
-    n_above.append(data >= 6.542) # 5 sigma p-values
-    # local pValue calculation and give back maximum significant pValue
-    pseudo_result = expect.poisson_test(data)
-
-    out.add_trial(n_tot_inj, pseudo_result)
-print("... done.")
-print(time.time()-t0, "sec")
-out.clean_nans()
-
-# save stuff
-# srcIdx can be converted to n_inj but n_inj is a float and not so nice for file name
-print("Save results")
-config = "nsrc_{nsrc:08d}_nsrcIdx_{nsrcIdx:08d}"
+print("Setup source count distribution ...")
+config = "nsrc_{nsrc:08d}_n_inj_{n_inj:08d}"
 firesong_config = ".".join(os.path.basename(args.infile_firesong).split(".")[:-1])
 config = "firesong_{firesong_config}_seed_{args.seed}"
 source_universe_config = ".".join(os.path.basename(args.infile_source_universe).split(".")[:-1])
 config = "source_universe_signal_trials_{source_universe_config}_density_{args.density}_seed_{args.seed}"
+
+source_count = None
+if args.n_inj is not None and args.nsrc is not None:
+    source_count = SourceCountDistEqualFluxAtEarth(phi_inj=args.n_inj, n_sources=args.nsrc)
+else:
+    source_count = SourceCountDistFIRESONG(infile=args.infile_source_universe, density=None)
+
+print("Setup simulation ...")
+sim = SignalSimulation( seed=None,
+                        background_pool=bgd_pool,
+                        single_spot_pool=sig_pool,
+                        source_count_dist=source_count,
+                        min_ang_dist=1.,
+                        dec_range=[-3,90],
+                        log10pVal_threshold=2.)
+
+print("Setup analysis ...")
+analysis = HPA_analysis(expect)
+
+#### start generating stuff
+print("Start generating trials ...")
+
+t0 = time.time()
+out = signal_trials(args.n_iter)
+hottest_source = []
+n_above = []
+while out.need_more_trials():
+    data = sim.get_pseudo_experiment(**kwargs)
+    hottest_source.append(np.max(data))
+    n_above.append(data >= 6.542) # 5 sigma p-values
+    pseudo_result = analysis.best_fit(data)
+    out.add_trial(n_tot_inj, pseudo_result)
+print("... done.")
+out.clean_nans()
+print(time.time()-t0, "sec")
+
+# save stuff
+print("Save results")
+config = str(source_count)
 with open(os.path.join(args.outdir,"HPA_signal_trials_{config}.npy".format(**locals())), "w") as open_file:
     np.save(open_file, out.trials)
 with open(os.path.join(args.outdir,"HPA_signal_trials_{config}.args".format(**locals())), "w") as open_file:
