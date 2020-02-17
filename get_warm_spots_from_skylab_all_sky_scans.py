@@ -5,6 +5,7 @@ import os
 import cPickle
 import numpy as np
 from skylab_data import SkylabAllSkyScan
+from utils import dec_range
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--infiles",
@@ -37,7 +38,7 @@ spots_trials = []
 for file_name in args.infiles:
     print "Processing", os.path.basename(file_name)
     scan = SkylabAllSkyScan(path=file_name)
-    scan.mask_hemisphere(dec_range=[np.radians(-3), np.radians(90)])
+    scan.mask_hemisphere(dec_range=dec_range)
     spots = scan.get_local_warm_spots(log10p_threshold=args.log10pVal_threshold,
                                       min_ang_dist=args.min_ang_dist)
     spots_trials.append(spots)

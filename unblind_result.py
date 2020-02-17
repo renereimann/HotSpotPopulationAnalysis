@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from data_types import LocalWarmSpotExpectation
-from utils import HPA_analysis
+from utils import HPA_analysis, dec_range
 from skylab_data import SkylabAllSkyScan
 import cPickle
 import numpy as np
@@ -12,7 +12,7 @@ bgd_trials_path = "test_data/HPA_TS_background_from_skylab.pickle"
 save_path = "test_data/unblinding_result.pickle"
 
 scan = SkylabAllSkyScan(path=all_sky_scan_path)
-scan.mask_hemisphere(dec_range=[np.radians(-3), np.radians(90)])
+scan.mask_hemisphere(dec_range=dec_range)
 spots = scan.get_local_warm_spots(log10p_threshold=2.0, min_ang_dist=1.0)
 
 expect = LocalWarmSpotExpectation(expectation_path)

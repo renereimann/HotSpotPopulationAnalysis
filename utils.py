@@ -7,6 +7,8 @@ from scipy.stats import poisson
 from statistics import poisson_weight
 from skylab_data import SkylabSingleSpotTrial
 
+dec_range = np.radians([-3, 90])
+
 class HPA_analysis(object):
     dtype = [("hpa_ts", float), ("log10p_thres", float), ("n_observed", int), ("n_expected", float)]
 
@@ -154,7 +156,7 @@ class SignalSimulation(object):
         self.single_spot_pool = kwargs.pop("single_spot_pool", None)
         self.source_count_dist = kwargs.pop("source_count_dist", None)
         self.min_ang_dist = np.radians(kwargs.pop("min_ang_dist", 1.))
-        self.sinDec_range = np.sin(np.radians(kwargs.pop("dec_range", [-3,90])))
+        self.sinDec_range = np.sin(kwargs.pop("dec_range", dec_range))
         self.log10pVal_threshold = kwargs.pop("log10pVal_threshold", 2.)
         self.solid_angle_hemisphere = 2*np.pi*(max(self.sinDec_range)-min(self.sinDec_range))
         self.solid_angle_per_source = np.pi*self.min_ang_dist**2
