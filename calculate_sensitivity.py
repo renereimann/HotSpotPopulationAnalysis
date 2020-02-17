@@ -1,95 +1,97 @@
 #!/usr/bin/env python
 
-# This script uses background trials and signal trials to calculate sensitivity and discovery potential for the HPA.
-
 import os, cPickle, glob, re, argparse
 import numpy as np
-from scipy.optimize import fmin_l_bfgs_b
 from scipy.optimize import minimize
 from scipy.stats import gamma, kstest
-
 from statistics import llh2Sigma
 
-from ps_analysis.plotting.hpa import gamma_fit_to_histogram, gamma_fit_contour, gamma_fit_survival_plot
-from ps_analysis.plotting.hpa import ninj_vs_logP_plots, find_mu_plot, TS_hist_plot, histogram_observed_vs_expected, histogram_plocal_vs_ppost
+def make_gamma_fit(trials, scan_likelihood=[16,16], verbose=False):
+    r"""Fits a Gamma Distribution to the HPA-TS values. The Goodness of fit
+    is calculated as well as the median (and its errors) are calculated.
+    If scan_likelihood is given a likelihood scan is used and the 3 and 5 sigma
+    quantiles of the distribution are extrapolated with error.
 
+    Parameters:
+    * trials: array_like
+        List of HPA-TS values from the background distribution.
+    * scan_likelihood: list
+        list of two numbers, that give the dimensions of the scan. If None, the scan is skipped.
+    * verbose: bool, default=False
+        some verbose printing
 
-def make_gamma_fit(read_path, verbose=False,
-                   grid_size=[16,16], hold_fig=False,
-                   plot_hist=True, plot_path_hist=None,
-                   plot_contour=True, plot_path_contour=None,
-                   plot_survival=True, plot_path_survival=None, label=None):
-    with open(read_path, "r") as read_file:
-        trials = cPickle.load(read_file)
+    Returns:
+        dict - The dict containse the calculated best fit parameters, GoF, Median and LLH scan
+    """
 
+    # do a fit with a gamma function
     params = gamma.fit(trials, floc=0)
 
+    # check the goodness of fit
     ks_gamma = kstest(trials, gamma(*params).cdf, alternative="greater")[1]
 
-    # histogram
-    hi, edg = np.histogram(trials, bins=np.linspace(0, 5, 21), density=True)
-
-    # calculate LLH landscape
-    x = np.linspace(params[0]-0.3, params[0]+0.3, grid_size[0])
-    y = np.linspace(params[2]-0.1, params[2]+0.1, grid_size[1])
-    xv, yv = np.meshgrid(x, y)
-    llh = [-np.sum(gamma(x1, 0, x2).logpdf(trials)) for x1, x2 in zip(xv.flatten(), yv.flatten())]
-    dllh = np.reshape(llh, np.shape(xv))-np.min(llh)
-    xmin = xv.flatten()[np.argmin(dllh)]
-    ymin = yv.flatten()[np.argmin(dllh)]
-    sigma = llh2Sigma(dllh, dof=2, alreadyTimes2=False, oneSided=False)
-
-    # median
+    # calculate the median of the distribution
+    # errors are estimated due to binomial statistics
     trials.sort()
     median = np.median(trials)
     median_lower = trials[int(len(trials)/2.-np.sqrt(len(trials))*0.5)]
     median_upper = trials[int(len(trials)/2.+np.sqrt(len(trials))*0.5)+1]
 
-    # extrapolation
-    ma = sigma < 1
-    TS_3sig = []
-    TS_5sig = []
-    for xx, yy in zip(xv[ma], yv[ma]):
-        func_3sig = lambda p: np.log((gamma(xx, 0, yy).sf(p)-0.00135)**2)
-        func_5sig = lambda p: np.log((gamma(xx, 0, yy).sf(p)-2.867e-7)**2)
-        res_3sig = minimize(func_3sig, x0=[5],  method="L-BFGS-B")
-        res_5sig = minimize(func_5sig, x0=[10], method="L-BFGS-B")
-        TS_3sig.append(res_3sig["x"][0])
-        TS_5sig.append(res_5sig["x"][0])
-    func_3sig = lambda p: np.log((gamma(*params).sf(p)-0.00135)**2)
-    func_5sig = lambda p: np.log((gamma(*params).sf(p)-2.867e-7)**2)
-    res_3sig = minimize(func_3sig, x0=[5],  method="L-BFGS-B")
-    res_5sig = minimize(func_5sig, x0=[10], method="L-BFGS-B")
-    ext_3sig = res_3sig["x"][0]
-    ext_5sig = res_5sig["x"][0]
-    lower_3sig = np.min(TS_3sig)
-    upper_3sig = np.max(TS_3sig)
-    lower_5sig = np.min(TS_5sig)
-    upper_5sig = np.max(TS_5sig)
+    result = {}
+    result["params"] = params
+    result["ks_pval"] = ks_gamma
+    result["median"] = (median, (median_lower, median_upper))
 
     if verbose:
         print "Fit parameters:", params
         print "KS-Test between fit and sample", ks_gamma
         print "Median at {:.2f} + {:.2f} - {:.2f}".format(median, median-median_lower, median_upper-median)
-        print "3 sigma at {:.2f} + {:.2f} - {:.2f}".format(ext_3sig, ext_3sig-lower_3sig, upper_3sig-ext_3sig)
-        print "5 sigma at {:.2f} + {:.2f} - {:.2f}".format(ext_5sig, ext_5sig-lower_5sig, upper_5sig-ext_5sig)
 
-    if plot_hist:
-        curr_plot = gamma_fit_to_histogram(params, hi, edg)
-        curr_plot.plot(savepath=plot_path_hist)
+    if scan_likelihood is not None:
+        # calculate LLH landscape
+        x = np.linspace(params[0]-0.3, params[0]+0.3, scan_likelihood[0])
+        y = np.linspace(params[2]-0.1, params[2]+0.1, scan_likelihood[1])
+        xv, yv = np.meshgrid(x, y)
+        llh = [-np.sum(gamma(x1, 0, x2).logpdf(trials)) for x1, x2 in zip(xv.flatten(), yv.flatten())]
+        dllh = np.reshape(llh, np.shape(xv))-np.min(llh)
+        xmin = xv.flatten()[np.argmin(dllh)]
+        ymin = yv.flatten()[np.argmin(dllh)]
+        sigma = llh2Sigma(dllh, dof=2, alreadyTimes2=False, oneSided=False)
 
-    if plot_contour:
-        curr_plot = gamma_fit_contour(xv, yv, sigma, xmin, ymin)
-        curr_plot.plot(savepath=plot_path_contour)
+        result["scan_best_fit_pixel"] = (xmin, ymin)
+        result["scan_x"] = xv
+        result["scan_y"] = yv
+        result["scan_sigma"] = sigma
 
-    if plot_survival:
-        curr_plot = gamma_fit_survival_plot( params, trials,
-                                             (median_lower, median_upper),
-                                             (lower_3sig, upper_3sig),
-                                             (lower_5sig, upper_5sig))
-        curr_plot.plot(savepath=plot_path_survival)
+        # extrapolation
+        ma = sigma < 1
+        TS_3sig = []
+        TS_5sig = []
+        for xx, yy in zip(xv[ma], yv[ma]):
+            func_3sig = lambda p: np.log((gamma(xx, 0, yy).sf(p)-0.00135)**2)
+            func_5sig = lambda p: np.log((gamma(xx, 0, yy).sf(p)-2.867e-7)**2)
+            res_3sig = minimize(func_3sig, x0=[5],  method="L-BFGS-B")
+            res_5sig = minimize(func_5sig, x0=[10], method="L-BFGS-B")
+            TS_3sig.append(res_3sig["x"][0])
+            TS_5sig.append(res_5sig["x"][0])
+        func_3sig = lambda p: np.log((gamma(*params).sf(p)-0.00135)**2)
+        func_5sig = lambda p: np.log((gamma(*params).sf(p)-2.867e-7)**2)
+        res_3sig = minimize(func_3sig, x0=[5],  method="L-BFGS-B")
+        res_5sig = minimize(func_5sig, x0=[10], method="L-BFGS-B")
+        ext_3sig = res_3sig["x"][0]
+        ext_5sig = res_5sig["x"][0]
+        lower_3sig = np.min(TS_3sig)
+        upper_3sig = np.max(TS_3sig)
+        lower_5sig = np.min(TS_5sig)
+        upper_5sig = np.max(TS_5sig)
 
-    return {"params": params, "ks_pval": ks_gamma, "median": (median, (median_lower, median_upper)), "3sig": (ext_3sig, (lower_3sig, upper_3sig)), "5sig": (ext_5sig, (lower_5sig, upper_5sig))}
+        result["3sig"] = (ext_3sig, (lower_3sig, upper_3sig))
+        result["5sig"] = (ext_5sig, (lower_5sig, upper_5sig))
+        if verobse:
+            print "3 sigma at {:.2f} + {:.2f} - {:.2f}".format(ext_3sig, ext_3sig-lower_3sig, upper_3sig-ext_3sig)
+            print "5 sigma at {:.2f} + {:.2f} - {:.2f}".format(ext_5sig, ext_5sig-lower_5sig, upper_5sig-ext_5sig)
+
+    return result
 
 def get_mu_2_flux_factor(season, sinHem=np.sin(np.radians(-5)), spectral_index=2.):
     """ Calculates the conversion factor from mu to flux for a given spectral index and sample.
@@ -128,52 +130,16 @@ def get_mu_2_flux_factor(season, sinHem=np.sin(np.radians(-5)), spectral_index=2
     solAng = 2. * np.pi * (1. - sinHem)
     return solAng/denominator
 
-def get_mu2flux_from_sens_files(glob_path):
-    equidist_sindec = 100
-    equidist_dec = np.arcsin(np.linspace(np.sin(np.radians(-5)), 1, equidist_sindec+1))
-    pathes_equidist = []
-    for f in  sorted(glob.glob(os.path.join(glob_path,  "sens_*.pickle"))):
-        dec_str = re.findall("_declination_([+-]?\d*\.\d+|[+-]?\d+)", f)[0]
-        if np.min(np.abs(equidist_dec - float(dec_str))) < 1e-10: pathes_equidist.append(f)
-    assert len(pathes_equidist) == equidist_sindec, "you did not get all declinations"
-
-    flux_div_mu = []
-    for f in pathes_equidist:
-        with open(f, "r") as open_file:
-            job_args, tmp = cPickle.load(open_file)
-        flux_div_mu.append((np.mean(np.array(tmp[tmp.keys()[0]][0]["flux"]) / np.array(tmp[tmp.keys()[0]][0]["mu"]))))
-    mu2flux = np.mean(flux_div_mu)
-    return mu2flux
-
 def get_files_for_nsrc(nsrc, glob_path):
-    """ Returns a list of files that are generated with nsrc as parameter.
-    Therefor we look in all file-pathes for the first occurence of eight digits
-    in a row and compare to number to nsrc.
-
-    Parameters:
-        - nsrc: float Number of injected sources
-        - glob_path: string A glob path where we will find the HPA signal trials.
-
-    Returns:
-        - list of file pathes
-    """
-
     files = sorted(glob.glob(glob_path))
-    assert len(files) > 0, "There are no files in the glob_path: {glob_path}".format(**locals())
 
     # first get the nsrc number of each file
     nsrc_file_list = []
     for f in files:
         # get FIRST match in a string
         number = re.search('_'+8*'[0-9]', f)
-        if number is None:
-            raise ValueError("There is no 8 digit number in the file path.")
-        else:
-            # get the found string and remove the leading "_"
-            number = int(number.group(0)[1:])
-            nsrc_file_list.append((number, f))
-
-    assert len(files)==len(nsrc_file_list), "We have lost files. Thats not good."
+        number = int(number.group(0)[1:])
+        nsrc_file_list.append((number, f))
 
     # select just file pathes with nsrc in path
     selected_file_list = []
@@ -181,44 +147,7 @@ def get_files_for_nsrc(nsrc, glob_path):
         if f[0] == nsrc:
             selected_file_list.append(f[1])
 
-    if len(selected_file_list) == 0:
-        raise ValueError("Did not find any file that matches nsrc. nsrc is {}".format(nsrc))
-
     return selected_file_list
-
-def get_data_for_nsrc(nsrc, glob_path):
-    """ Returns a structured array with signal trials for nsrc.
-
-    Parameters:
-        - nsrc: float Number of injected sources
-        - glob_path: string A glob path where we will find the HPA signal trials.
-
-    Returns:
-        - Structured array of singal trials
-    """
-
-    files = get_files_for_nsrc(nsrc, glob_path)
-
-    # signal trials should be a structured array with this data format
-    data = np.empty(0, dtype=[("n_inj", np.int),
-                              ("logP", np.float),
-                              ("pVal", np.float),
-                              ("count", np.int),
-                              ("exp", np.float)])
-
-    for f in files:
-        with open(f, "r") as open_file:
-            temp = np.load(open_file)
-
-        #isStructArrayWith(temp, "loaded signal trials (temp)", data.dtype.names)
-        #assert len(temp) > 0, "The loaded list is empty. The file was {f}".format(**locals())
-        assert np.all(np.isfinite(temp["logP"])), "Found nan logP values in trials from file {f}".format(**locals())
-        data = np.concatenate([data, temp])
-
-    assert len(data) > 0, "There are no trials to load for {nsrc} from {glob_path}".format(**locals())
-    assert np.all(np.isfinite(data["logP"])), "Found nan logP values in data."
-
-    return data
 
 def sens_estimation(trials, TS_thres, perc, eps):
     """ Estimates sensitivity and discovery potential for a fixed number of nsources.
@@ -252,59 +181,30 @@ def sens_estimation(trials, TS_thres, perc, eps):
     seed = mu[np.argmin([fun(i) for i in mu])]
 
     # minimize function
-    x, f, info = fmin_l_bfgs_b(fun, [seed], bounds=bounds, approx_grad=True)
+    res = minimize(fun, x0=[seed], method="L-BFGS-B", bounds=bounds, approx_grad=True)
 
     # calculate uncertainties on percentile
-    beta, beta_err = poisson_percentile(x, trials["n_inj"], trials["logP"], TS_thres)
+    beta, beta_err = poisson_percentile(res["x"], trials["n_inj"], trials["logP"], TS_thres)
 
     # assert that fitted within tolerance
     if np.fabs(perc - beta) > 1.e-2 or beta_err > 2.5e-2:
 
         print(33*"-")
         print("ERROR", perc, beta, beta_err)
-        print(bounds, seed, x)
+        print(bounds, seed, res["x"])
         print(33*"-")
         raise RuntimeError("Minimizer did not work successful")
 
-    return x[0], poisson_weight(trials["n_inj"], x), beta, beta_err
+    return res["x"][0], poisson_weight(trials["n_inj"], res["x"]), beta, beta_err
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--infile",
+parser.add_argument("--backgroung_HPA_trials",
                     type=str,
                     required=True,
                     help="Give inpath.")
-parser.add_argument("--outdir",
-                    type=str,
-                    required=True,
-                    help="Give outpath.")
-parser.add_argument("--plotdir",
-                    type=str,
-                    required=False,
-                    default=None,
-                    help="Give plot dir.")
 args = parser.parse_args()
-
-post_fix = os.path.basename(args.infile).replace("max_local_pVal_", "").replace(".pickle", "")
-kwargs = {}
-if args.plotdir is not None:
-    kwargs["plot_hist"] = True
-    kwargs["plot_path_hist"] = os.path.join(args.plotdir, "max_pVal_hist_{post_fix}.png".format(**locals()))
-    kwargs["plot_contour"] = True
-    kwargs["plot_path_contour"] = os.path.join(args.plotdir, "fit_llh_lands_{post_fix}.png".format(**locals()))
-    kwargs["plot_survival"] = True
-    kwargs["plot_path_survival"] = os.path.join(args.plotdir, "extrapolation_{post_fix}.png".format(**locals()))
-
-fit_stuff = make_gamma_fit(args.infile, **kwargs)
-
-# save stuff
-with open(os.path.join(args.outdir, "gamma_fit_{post_fix}.pickle".format(**locals())) , "w") as open_file:
-    cPickle.dump(fit_stuff, open_file)
-
-
 # Settings
-
-gamma_fit_file     = "/data/user/reimann/2017_10/HPA/bgd_trials/mc_trials/gamma_fit_min_ang_dist_1.00_min_thres_2.00.pickle"
 TS_val_keys        = ["median", "3sig", "5sig", "UL"]
 beta               = [0.9,      0.5,    0.5,    0.9]                    # quantiles of the signal TS distribution that should beat the correspont background values
 single_sens_folder = "/data/user/reimann/2017_10/sensitivity/mc_trials_fixed_negTS/E-2.0/sindec_bandwidth_1deg/"
@@ -313,32 +213,27 @@ nsrc_list          = np.array([1,2,4,8,16,32,64,128,256,512,1024,2048])  # Numbe
 eps                = 2.5                                             # tolerance of fitter
 save_path          = "/data/user/reimann/2017_10/HPA/hpa_sensitivity_and_limit_bgd_wo_astro_2_19.cPickle"
 plotting           = False
+unblind_value = 1.37962118438
 
-# Get the TS values to beat from background fit
+# get background HPA trials
+with open(args.backgroung_HPA_trials, "r") as open_file:
+    backgroung_HPA_trials = cPickle.load(open_file)
 
-with open(gamma_fit_file, "r") as open_file:
-    gamma_fit = cPickle.load(open_file)
-bgd_TS_vals =[gamma_fit[k][0] if k!="UL" else 1.37962118438 for k in TS_val_keys]
+# fit the background distribution and extrapolate
+gamma_fit = make_gamma_fit(backgroung_HPA_trials)
+
+bgd_TS_vals =[gamma_fit[k][0] if k!="UL" else unblind_value for k in TS_val_keys]
 print bgd_TS_vals
 
 # Get mu -> flux factor
-
-mu2flux = get_mu2flux_from_sens_files(single_sens_folder)
+mu2flux = get_mu_2_flux_factor(single_sens_folder)
 print "Mu to flux conversion factor:", mu2flux
-
-
 
 flux = np.zeros((len(nsrc_list), len(bgd_TS_vals)))
 for i, nsrc in enumerate(nsrc_list):
-    if plotting:
-        # init plotting
-        ninj_vs_logP_plot = ninj_vs_logP_plots(nsrc, sig_trials)
-        find_mu = find_mu_plot(nsrc)
-        TS_hist = TS_hist_plot(nsrc)
-
     # get data
-    sig_trials = get_data_for_nsrc(nsrc, sig_trial_path)
-
+    files = get_files_for_nsrc(nsrc, sig_trial_path)
+    sig_trials = np.concatenate([np.load(f) for f in files])
     # loop over sensitivity and discovery potential TS
     for j, (val_i, beta_i) in enumerate(zip(bgd_TS_vals, beta)):
         print nsrc, val_i
@@ -350,19 +245,8 @@ for i, nsrc in enumerate(nsrc_list):
             continue
 
         flux[i,j] = mu * mu2flux
-
-        if plotting:
-            ninj_vs_logP_plot.add_threshold(val_i)
-            find_mu.add_mu_profile(sig_trials, val_i, mu, eps, beta_i)
-            TS_hist.add_hist_for_threshold(sig_trials, w, b, b_err, val_i, mu)
-            histogram_observed_vs_expected(nsrc, sig_trials, w, mu).plot()
-            histogram_plocal_vs_ppost(nsrc, sig_trials, w, mu).plot()
-
-    if plotting:
-        # plot plots
-        ninj_vs_logP_plot.plot()
-        find_mu.plot()
-        TS_hist.plot()
+        # needed for plotting
+        # nsrc sig_trials, val_i, beta_i, eps, mu, w, b, b_err
 
 # make the flux per source
 for i in range(np.shape(flux)[1]):
