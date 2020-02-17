@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-from scipy.stats import binom
 
 ### Poisson distribution ###
 
@@ -106,7 +105,7 @@ def pval2Sigma(pval, oneSided=False):
 
     """
     # usually not done one-sided
-    if oneSided: pval *= 2.0 
+    if oneSided: pval *= 2.0
     sigma = scipy.special.erfinv(1.0 - pval)*np.sqrt(2)
     return sigma
 
@@ -215,4 +214,4 @@ def sigma2ChiSquared(sigma, dof): # for contours: give sigma, want level in chi2
     """
     pval  = sigma2Pval(sigma, one_sided=False)
     chi2  = pVal2ChiSquaredVal(pval, dof)
-    return chi2 
+    return chi2

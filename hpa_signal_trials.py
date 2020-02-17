@@ -2,7 +2,6 @@
 
 import argparse, os, cPickle, time
 import numpy as np
-from numpy.lib.recfunctions import append_fields
 from utils import HPA_analysis, BackgroundLocalWarmSpotPool, SingleSpotTrialPool, SignalSimulation, dec_range
 from data_types import LocalWarmSpotExpectation
 from source_count_dist import SourceCountDistEqualFluxAtEarth, SourceCountDistFIRESONG
