@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import os, cPickle, argparse
+import os, argparse
+import cPickle as pickle
 import numpy as np
 from data_types import LocalWarmSpotExpectation
 from utils import HPA_analysis
@@ -29,7 +30,7 @@ print
 trials = []
 for file_name in args.infiles:
     with open(file_name, "r") as open_file:
-        temp = cPickle.load(open_file)
+        temp = pickle.load(open_file)
     trials.extend(temp)
 print "Read in %d trials"%len(trials)
 
@@ -46,4 +47,4 @@ hpa_results = np.concatenate([hpa_results])
 print hpa_results[:10]
 # save HPA values
 with open(args.outfile, "w") as open_file:
-    cPickle.dump(hpa_results, open_file)
+    pickle.dump(hpa_results, open_file)

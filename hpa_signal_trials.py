@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, os, cPickle, time
+import argparse, os, time
 import numpy as np
 from utils import HPA_analysis, BackgroundLocalWarmSpotPool, SingleSpotTrialPool, SignalSimulation, dec_range
 from data_types import LocalWarmSpotExpectation
@@ -10,7 +10,7 @@ from source_count_dist import SourceCountDistEqualFluxAtEarth, SourceCountDistFI
 parser = argparse.ArgumentParser()
 parser.add_argument("--infile_signal",
                         type=str,
-                        default="test_data/signal_pool.cPickle",
+                        default="test_data/signal_pool.pickle",
                         help="Path of the single spot signal pool file.")
 parser.add_argument("--infile_background",
                         type=str,

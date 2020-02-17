@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-
+import os, argparse
+import cPickle as pickle
 import numpy as np
-import cPickle, os, argparse
 from data_types import LocalWarmSpotExpectation
 
 parser = argparse.ArgumentParser()
@@ -24,7 +24,7 @@ print
 trials = []
 for file_name in args.infiles:
     with open(file_name, "r") as open_file:
-        temp = cPickle.load(open_file)
+        temp = pickle.load(open_file)
     trials.extend(temp)
 print "Read in %d trials"%len(trials)
 

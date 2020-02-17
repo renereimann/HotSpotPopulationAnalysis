@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import os, cPickle, glob, re, argparse
+import os, glob, re, argparse
+import cPickle as pickle
 import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import gamma, kstest
@@ -211,13 +212,13 @@ single_sens_folder = "/data/user/reimann/2017_10/sensitivity/mc_trials_fixed_neg
 sig_trial_path     = "/data/user/reimann/2017_10/HPA/sig_trials/mc_no_astro_bgd_2_19/HPA_signal_trials_nsrc_0000*_00*.npy"
 nsrc_list          = np.array([1,2,4,8,16,32,64,128,256,512,1024,2048])  # Number of Sources for which to calculate sensitivities
 eps                = 2.5                                             # tolerance of fitter
-save_path          = "/data/user/reimann/2017_10/HPA/hpa_sensitivity_and_limit_bgd_wo_astro_2_19.cPickle"
+save_path          = "/data/user/reimann/2017_10/HPA/hpa_sensitivity_and_limit_bgd_wo_astro_2_19.pickle"
 plotting           = False
 unblind_value = 1.37962118438
 
 # get background HPA trials
 with open(args.backgroung_HPA_trials, "r") as open_file:
-    backgroung_HPA_trials = cPickle.load(open_file)
+    backgroung_HPA_trials = pickle.load(open_file)
 
 # fit the background distribution and extrapolate
 gamma_fit = make_gamma_fit(backgroung_HPA_trials)
@@ -261,4 +262,4 @@ print flux
 my_result = {"nsrc": nsrc_list, "sens":flux[:, 0], "3sig":flux[:, 1], "5sig":flux[:,2], "UL": flux[:,3]}
 
 with open(save_path, "w") as open_file:
-    cPickle.dump(my_result, open_file)
+    pickle.dump(my_result, open_file)

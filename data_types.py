@@ -1,4 +1,5 @@
-import cPickle, os
+import os
+import cPickle as pickle
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 from scipy.stats import kstest, poisson, binom
@@ -36,11 +37,11 @@ class LocalWarmSpotExpectation(object):
 
     def save(self, path):
         with open(path, "w") as open_file:
-            cPickle.dump(self._parametrization, open_file)
+            pickle.dump(self._parametrization, open_file)
 
     def load(self, path):
         with open(path, "r") as open_file:
-            param = cPickle.load(open_file)
+            param = pickle.load(open_file)
         self._parametrization = param
         self.spline()
 

@@ -2,7 +2,7 @@
 
 import argparse
 import os
-import cPickle
+import cPickle as pickle
 import numpy as np
 from skylab_data import SkylabAllSkyScan
 from utils import dec_range
@@ -45,4 +45,4 @@ for file_name in args.infiles:
 
 # write output
 with open(args.outfile, "w") as open_file:
-    cPickle.dump(spots_trials, open_file, protocol=2)
+    pickle.dump(spots_trials, open_file, protocol=2)
