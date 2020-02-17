@@ -47,7 +47,7 @@ parser.add_argument("--nsrc",
                     type=int,
                     default=None,
                     help="Number of Source in population. Default: None")
-parser.add_argument("--n_inj",
+parser.add_argument("--phi_inj",
                     type=float,
                     default=None,
                     help="Flux @ 1 GeV of sources at Earth. Units: 1/GeV cm^2 s. Default: None")
@@ -82,12 +82,12 @@ sig_pool.load(args.infile_signal, seed=seed_sig)
 
 print("Setup source count distribution ...")
 source_count = None
-if args.n_inj is not None and args.nsrc is not None:
-    source_count = SourceCountDistEqualFluxAtEarth(phi_inj=args.n_inj, n_sources=args.nsrc)
+if args.phi_inj is not None and args.nsrc is not None:
+    source_count = SourceCountDistEqualFluxAtEarth(phi_inj=args.phi_inj, n_sources=args.nsrc)
 elif args.infile_source_count is not None:
     source_count = SourceCountDistFIRESONG(infile=args.infile_source_count, density=None)
 else:
-    raise NotImplementedError("You need to either give --n_inj and --nsrc or --infile_source_cout (and --density) to specify a source count distribution.")
+    raise NotImplementedError("You need to either give --phi_inj and --nsrc or --infile_source_cout (and --density) to specify a source count distribution.")
 
 print("Setup simulation ...")
 sim = SignalSimulation( seed=None,
