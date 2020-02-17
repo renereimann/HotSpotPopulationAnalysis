@@ -116,16 +116,9 @@ Notes:
 Import dependencies
 -------------------
 
-import os, cPickle, argparse, time, glob, collections, re
-import cPickle as pickle
-import numpy as np
-from numpy.lib.recfunctions import append_fields
-import scipy
-from scipy.interpolate import UnivariateSpline
-from scipy.optimize import minimize
-from scipy.stats import kstest, poisson, binom, gamma, expon
+import  argparse, collections, cPickle, glob, os, re, time (build-in)
 
-import healpy
+import numpy, scipy, healpy
 
 # add plotting for
 * poisson test (has been removed for now), counts above plot
