@@ -85,34 +85,25 @@ The procedure will start as following:
     Parameters:
     *
 
-* external_data/
-
-    Digitized Data from references
-
-* plotting/
-
-    plot the stuff
-
-* test_data/
-
-    Some data for testing the scripts
-
-The script condor_chain should set up the complet work-flow. It uses a config file as input and creates directories, checks for basic inputs and produces dag files. You just run it once with the config file as arguments and then you just have to run the dag file in the correct order.
+* data_types.py                                 # classes with data types
+* SingleSpotTS2pValueParametrization.py         # class for TS -> pValue conversion
+* skylab_data.py                                # classes interacting with skylab
+* source_count_dist.py                          # classes representing source_count_distributions
+* statistics.py                                 # functions, related to statistics
+* utils.py                                      # functions, classes
 
 
-The files utils.py and sensitivity_plots.py contain functions and classes that are used in several places. These are collections of functions.
+* external_data/                                # Digitized Data from references
+
+* plotting/                                     # plot the stuff
+
+* test_data/                                    # Some data for testing the scripts
 
 
 Notes:
     * We wondered why the expectation in the paper was cutting of. The difference is that the median was shown while we thought it would be the mean. The mean (also the expectation value) is still decreasing linearly.
 
 
--rw-rw-r-- 1 bootcamp bootcamp   5547 Feb  6 09:48 statistics.py                                                            # functions, related to statistics
--rw-rw-r-- 1 bootcamp bootcamp  39600 Feb  7 18:50 utils.py                                                                 # functions, classes
-                                                   skylab_data.py                                                           # classes interacting with skylab
-                                                   data_types.py                                                            # classes with data types
-                                                   source_count_dist.py                                                     # classes representing source_count_distributions
--rw-rw-r-- 1 bootcamp bootcamp  23233 Feb  6 09:53 SingleSpotTS2pValueParametrization.py                                    # class for TS -> pValue conversion (only used in generate signal pool)
 
 Import dependencies
 -------------------
