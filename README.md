@@ -81,9 +81,16 @@ The procedure will start as following:
     Will read in the background HPA TS and make a gamma fit to it.
 
 8. unblind_result.py
+    Extracts the local warm spots from a skymap and calculates the HPA-TS value and compares it to background trials and
+    gives a post trial p-value.
 
     Parameters:
-    *
+    * infile: Path of the skylab all sky scan that contains the unblinded sky map.
+    * background_trials: Path of the background HPA TS trials file.
+    * expectation: Path of the LocalWarmSpotExpecation file.
+    * outfile: Path where the unblinding results should be saved.
+    * log10pVal_threshold: Give the -log10(p-value) above that spots should not be considerd. Default: 2.0.
+    * min_ang_dist: Give the minimal angular distance allowed between two local warm spots. Units: degrees. Default: 1.
 
 * data_types.py                                 # classes with data types
 * SingleSpotTS2pValueParametrization.py         # class for TS -> pValue conversion
@@ -103,38 +110,37 @@ The procedure will start as following:
 Notes:
     * We wondered why the expectation in the paper was cutting of. The difference is that the median was shown while we thought it would be the mean. The mean (also the expectation value) is still decreasing linearly.
 
-
-
 Import dependencies
 -------------------
 
-import cPickle
-import os
-import glob
-import argparse
-import re
-import time
-import collections
+import os, cPickle, argparse, time, glob, collections
+import cPickle as pickle
 import numpy as np
 from numpy.lib.recfunctions import append_fields
+import scipy
 from scipy.interpolate import UnivariateSpline
-import scipy.integrate
-from scipy.special import gamma, gammaincc
-from scipy.stats import poisson, norm, binom, gamma, chi2, expon, kstest
-from scipy.optimize import curve_fit, minimize
-from scipy.optimize import fmin_l_bfgs_b
-
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.colors as colors
-import matplotlib.lines as mlines
-from matplotlib.colors import LogNorm
+from scipy.stats import kstest, poisson, binom
+from scipy.stats import expon
 
 import healpy
-import cosmolopy                                                                                                            # Kowalsky.py
-from FIRESONG.Evolution import Evolution, RedshiftDistribution, StandardCandleSources, cosmology, Ntot                      # Kowalsky.py
-from SourceUniverse.SourceUniverse import SourceCountDistribution                                                           # utils.py
+
+from data_types import LocalWarmSpotExpectation, LocalWarmSpotList
+from statistics import poisson_weight
+from SingleSpotTS2pValueParametrization import SingleSpotTS2pValueParametrization
+from skylab_data import SkylabAllSkyScan, SkylabSingleSpotTrial
+from source_count_dist import SourceCountDistEqualFluxAtEarth, SourceCountDistFIRESONG
+from utils import HPA_analysis, BackgroundLocalWarmSpotPool, SingleSpotTrialPool, SignalSimulation, dec_range
+
+./calculate_sensitivity.py:import os, cPickle, glob, re, argparse
+./calculate_sensitivity.py:import numpy as np
+./calculate_sensitivity.py:from scipy.optimize import fmin_l_bfgs_b
+./calculate_sensitivity.py:from ps_analysis.plotting.hpa import ninj_vs_logP_plots, find_mu_plot, TS_hist_plot, histogram_observed_vs_expected, histogram_plocal_vs_ppost
+./make_extrapolation.py:from scipy.stats import gamma, kstest
+./make_extrapolation.py:from scipy.optimize import minimize
+./make_extrapolation.py:import numpy as np
+./make_extrapolation.py:from statistics import llh2Sigma
+./make_extrapolation.py:from ps_analysis.plotting.hpa import gamma_fit_to_histogram, gamma_fit_contour, gamma_fit_survival_plot
+
 
 # add plotting for
 * poisson test (has been removed for now), counts above plot
