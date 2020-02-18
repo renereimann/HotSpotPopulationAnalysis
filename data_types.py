@@ -97,3 +97,41 @@ class LocalWarmSpotExpectation(object):
             raise RuntimeError("No parametrization loaded or generated.")
         # we made the spline in log10
         return 10**self._log10_n_expected(logP_thres)
+
+
+class sensitivity_result(object):
+    def __init__(self, TS_thres=None, alpha=None, beta=None, label=None):
+        # define kind of CL level
+        self.TS_thres = TS_thres
+        self.alpha = alpha
+        self.beta = beta
+        self.label = label
+
+        # tot injected at CL level
+        self.tot_n_inj = None
+        self.success = False
+
+        # define tot_n_inj -> flux conversion factor
+        self.flux_per_mu = None
+        self.flux_units = "1/GeV cm^2 s"
+        self.flux_pivot_point = "1 GeV"
+
+        # source mode specific
+        self.source_model = None
+
+    def __str__(self):
+        return "Sensitivity Result: "+str(self.__dict__)
+
+    @property
+    def disc_pot_like(self):
+        return self.beta == 0.5
+
+    @property
+    def limit_like(self):
+        return not self.disc_pot_like
+
+    @property
+    def CL(self):
+        if self.disc_pot_like:
+            return self.alpha
+        return self.beta
