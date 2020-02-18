@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, glob, re, argparse
+import os, argparse
 import cPickle as pickle
 import numpy as np
 from scipy.optimize import minimize
@@ -195,16 +195,16 @@ def sens_estimation(trials, TS_thres, perc, eps=2.5):
 
     return res["x"][0], poisson_weight(trials["n_inj"], res["x"]), beta, beta_err
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--backgroung_HPA_trials",
+parser = argparse.ArgumentParser(epilog="All remaining arguments are passed to describe the signal model.\n")
+parser.add_argument("--background_HPA_trials",
                     type=str,
                     #default="test_data/HPA_TS_background_from_skylab.pickle",
                     default="test_data/max_local_pVal_min_ang_dist_1.00_min_thres_2.00.pickle",
-                    help="Give inpath.")
+                    help="Path of file that contains background HPA trials.")
 parser.add_argument("--outfile",
                     type=str,
                     default="test_data/sensitivity_test_nsrc_256.pickle",
-                    help="Give inpath.")
+                    help="Path where the output file should be stored.")
 parser.add_argument("--signal_files",
                     type=str,
                     nargs='+',
@@ -213,7 +213,7 @@ parser.add_argument("--signal_files",
                              "test_data/HPA_signal_trials_nsrc_00000256_nsrcIdx_00000004.npy", "test_data/HPA_signal_trials_nsrc_00000256_nsrcIdx_00000005.npy",
                              "test_data/HPA_signal_trials_nsrc_00000256_nsrcIdx_00000006.npy", "test_data/HPA_signal_trials_nsrc_00000256_nsrcIdx_00000007.npy",
                              "test_data/HPA_signal_trials_nsrc_00000256_nsrcIdx_00000008.npy", "test_data/HPA_signal_trials_nsrc_00000256_nsrcIdx_00000009.npy",],
-                    help="List of input files. Input files should contain a list of extracted background populations.")
+                    help="List of HPA signal trials files. Note that all files should represent one source model, except of changing flux strength.")
 parser.add_argument("--unblinded_value",
                     type=float,
                     default=None, # 1.379
@@ -225,11 +225,11 @@ print "Use arguments:", args
 print
 
 # get background HPA trials
-with open(args.backgroung_HPA_trials, "r") as open_file:
-    backgroung_HPA_trials = pickle.load(open_file)
+with open(args.background_HPA_trials, "r") as open_file:
+    background_HPA_trials = pickle.load(open_file)
 # fit the background distribution and extrapolate
-#gamma_fit = make_gamma_fit(backgroung_HPA_trials["hpa_ts"])
-gamma_fit = make_gamma_fit(backgroung_HPA_trials)
+#gamma_fit = make_gamma_fit(background_HPA_trials["hpa_ts"])
+gamma_fit = make_gamma_fit(background_HPA_trials)
 
 # Get mu -> flux factor
 mu2flux = get_mu_2_flux_factor()
