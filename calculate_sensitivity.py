@@ -61,10 +61,17 @@ def make_gamma_fit(trials, scan_likelihood=[16,16], verbose=False):
     median_lower = trials[int(len(trials)/2.-np.sqrt(len(trials))*0.5)]
     median_upper = trials[int(len(trials)/2.+np.sqrt(len(trials))*0.5)+1]
 
+    TS_vs_quantile = lambda quantile: gamma(*params).isf(quantile)
+    p_3sigma = sigma2pval(3, oneSided=True)
+    p_5sigma = sigma2pval(5, oneSided=True)
+    ext_3sig = gamma(*params).isf(p_5sigma)
+    ext_5sig = gamma(*params).isf(p_5sigma)
+
     result = {}
     result["params"] = params
     result["ks_pval"] = ks_gamma
     result["median"] = (median, (median_lower, median_upper))
+    result["TS_vs_quantile"] = TS_vs_quantile
 
     if verbose:
         print "Fit parameters:", params
@@ -87,26 +94,12 @@ def make_gamma_fit(trials, scan_likelihood=[16,16], verbose=False):
         result["scan_y"] = yv
         result["scan_sigma"] = sigma
 
-        p_3sigma = sigma2pval(3, oneSided=True)
-        p_5sigma = sigma2pval(5, oneSided=True)
-
-        # extrapolation
+        # 1 sigma error on the extrapolation
         ma = sigma < 1
-        TS_3sig = [gamma(xx, 0, yy).isf(p_3sigma) for xx, yy in zip(xv[ma], yv[ma])]
-        TS_5sig = [gamma(xx, 0, yy).isf(p_5sigma) for xx, yy in zip(xv[ma], yv[ma])]
-        ext_3sig = gamma(*params).isf(p_5sigma)
-        ext_5sig = gamma(*params).isf(p_5sigma)
-        lower_3sig = np.min(TS_3sig)
-        upper_3sig = np.max(TS_3sig)
-        lower_5sig = np.min(TS_5sig)
-        upper_5sig = np.max(TS_5sig)
-
-        result["3sig"] = (ext_3sig, (lower_3sig, upper_3sig))
-        result["5sig"] = (ext_5sig, (lower_5sig, upper_5sig))
-        if verobse:
-            print "3 sigma at {:.2f} + {:.2f} - {:.2f}".format(ext_3sig, ext_3sig-lower_3sig, upper_3sig-ext_3sig)
-            print "5 sigma at {:.2f} + {:.2f} - {:.2f}".format(ext_5sig, ext_5sig-lower_5sig, upper_5sig-ext_5sig)
-
+        TS_vs_quantile_lower = lambda quantile: np.min([gamma(xx, 0, yy).isf(quantile) for xx, yy in zip(xv[ma], yv[ma])])
+        TS_vs_quantile_upper = lambda quantile: np.max([gamma(xx, 0, yy).isf(quantile) for xx, yy in zip(xv[ma], yv[ma])])
+        result["TS_vs_quantile_lower"] = TS_vs_quantile_lower
+        result["TS_vs_quantile_upper"] = TS_vs_quantile_upper
     return result
 
 def get_mu_2_flux_factor(dec_range=dec_range, spectral_index=2.):
