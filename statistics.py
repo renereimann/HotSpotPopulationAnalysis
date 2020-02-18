@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from scipy.special import erf, erfinv
 
 ### Poisson distribution ###
 
@@ -106,7 +107,7 @@ def pval2Sigma(pval, oneSided=False):
     """
     # usually not done one-sided
     if oneSided: pval *= 2.0
-    sigma = scipy.special.erfinv(1.0 - pval)*np.sqrt(2)
+    sigma = erfinv(1.0 - pval)*np.sqrt(2)
     return sigma
 
 def sigma2pval(sigma, oneSided=False):
@@ -125,7 +126,7 @@ def sigma2pval(sigma, oneSided=False):
         p-values
 
     """
-    pval = 1-scipy.special.erf(sigma/np.sqrt(2))
+    pval = 1-erf(sigma/np.sqrt(2))
     if oneSided: pval /= 2.0
     return pval
 
