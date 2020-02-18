@@ -5,7 +5,30 @@ import cPickle as pickle
 import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import gamma, kstest
-from statistics import llh2Sigma
+from statistics import llh2Sigma, sigma2pval
+from utils import dec_range
+
+class sensitivity_result(object):
+    def __init__(self, CL=None, alpha=None, beta=None, TS_thres=None, disc_pot_like=True, label=None, source_model=None):
+        # define kind of CL level
+        self.alpha = alpha
+        self.beta = beta
+        self.TS_thres = TS_thres
+        self.CL = CL
+        self.disc_pot_like = disc_pot_like
+        self.limit_like = not disc_pot_like
+        self.label = label
+
+        # tot injected at CL level
+        self.mu = None
+
+        # define mu -> flux conversion factor
+        self.flux_per_mu = None
+        self.flux_units = "1/GeV cm^2 s"
+        self.flux_pivot_point = "1 GeV"
+
+        # source mode specific
+        self.source_model = source_model
 
 def make_gamma_fit(trials, scan_likelihood=[16,16], verbose=False):
     r"""Fits a Gamma Distribution to the HPA-TS values. The Goodness of fit
@@ -64,23 +87,15 @@ def make_gamma_fit(trials, scan_likelihood=[16,16], verbose=False):
         result["scan_y"] = yv
         result["scan_sigma"] = sigma
 
+        p_3sigma = sigma2pval(3, oneSided=True)
+        p_5sigma = sigma2pval(5, oneSided=True)
+
         # extrapolation
         ma = sigma < 1
-        TS_3sig = []
-        TS_5sig = []
-        for xx, yy in zip(xv[ma], yv[ma]):
-            func_3sig = lambda p: np.log((gamma(xx, 0, yy).sf(p)-0.00135)**2)
-            func_5sig = lambda p: np.log((gamma(xx, 0, yy).sf(p)-2.867e-7)**2)
-            res_3sig = minimize(func_3sig, x0=[5],  method="L-BFGS-B")
-            res_5sig = minimize(func_5sig, x0=[10], method="L-BFGS-B")
-            TS_3sig.append(res_3sig["x"][0])
-            TS_5sig.append(res_5sig["x"][0])
-        func_3sig = lambda p: np.log((gamma(*params).sf(p)-0.00135)**2)
-        func_5sig = lambda p: np.log((gamma(*params).sf(p)-2.867e-7)**2)
-        res_3sig = minimize(func_3sig, x0=[5],  method="L-BFGS-B")
-        res_5sig = minimize(func_5sig, x0=[10], method="L-BFGS-B")
-        ext_3sig = res_3sig["x"][0]
-        ext_5sig = res_5sig["x"][0]
+        TS_3sig = [gamma(xx, 0, yy).isf(p_3sigma) for xx, yy in zip(xv[ma], yv[ma])]
+        TS_5sig = [gamma(xx, 0, yy).isf(p_5sigma) for xx, yy in zip(xv[ma], yv[ma])]
+        ext_3sig = gamma(*params).isf(p_5sigma)
+        ext_5sig = gamma(*params).isf(p_5sigma)
         lower_3sig = np.min(TS_3sig)
         upper_3sig = np.max(TS_3sig)
         lower_5sig = np.min(TS_5sig)
@@ -94,7 +109,7 @@ def make_gamma_fit(trials, scan_likelihood=[16,16], verbose=False):
 
     return result
 
-def get_mu_2_flux_factor(season, sinHem=np.sin(np.radians(-5)), spectral_index=2.):
+def get_mu_2_flux_factor(dec_range=dec_range, spectral_index=2.):
     """ Calculates the conversion factor from mu to flux for a given spectral index and sample.
 
     Parameters
@@ -125,10 +140,10 @@ def get_mu_2_flux_factor(season, sinHem=np.sin(np.radians(-5)), spectral_index=2
         livetime = np.sum(grl["livetime"])
 
         weight = mc["ow"]*livetime*mc["trueE"]**(-np.abs(spectral_index))
-        mask = mc["dec"] > np.arcsin(sinHem)
+        mask = np.logical_and(min(dec_range) < mc["dec"], mc["dec"] < max(dec_range))
         denominator += np.sum(weight[mask])
 
-    solAng = 2. * np.pi * (1. - sinHem)
+    solAng = 2. * np.pi * (np.sin(max(dec_range)) - np.sin(min(dec_range)))
     return solAng/denominator
 
 def get_files_for_nsrc(nsrc, glob_path):
@@ -148,9 +163,9 @@ def get_files_for_nsrc(nsrc, glob_path):
         if f[0] == nsrc:
             selected_file_list.append(f[1])
 
-    return selected_file_list
+    return np.concatenate([np.load(f) for f in selected_file_list])
 
-def sens_estimation(trials, TS_thres, perc, eps):
+def sens_estimation(trials, TS_thres, perc, eps=2.5):
     """ Estimates sensitivity and discovery potential for a fixed number of nsources.
     Returns mu at sensitivity or discovery potential
 
@@ -198,68 +213,58 @@ def sens_estimation(trials, TS_thres, perc, eps):
 
     return res["x"][0], poisson_weight(trials["n_inj"], res["x"]), beta, beta_err
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--backgroung_HPA_trials",
                     type=str,
                     required=True,
                     help="Give inpath.")
 args = parser.parse_args()
+
+print "Run", os.path.realpath(__file__)
+print "Use arguments:", args
+print
+
 # Settings
 TS_val_keys        = ["median", "3sig", "5sig", "UL"]
 beta               = [0.9,      0.5,    0.5,    0.9]                    # quantiles of the signal TS distribution that should beat the correspont background values
-single_sens_folder = "/data/user/reimann/2017_10/sensitivity/mc_trials_fixed_negTS/E-2.0/sindec_bandwidth_1deg/"
+alpha              = [0.5,      "3sig", "5sig", unblind_value]
 sig_trial_path     = "/data/user/reimann/2017_10/HPA/sig_trials/mc_no_astro_bgd_2_19/HPA_signal_trials_nsrc_0000*_00*.npy"
-nsrc_list          = np.array([1,2,4,8,16,32,64,128,256,512,1024,2048])  # Number of Sources for which to calculate sensitivities
-eps                = 2.5                                             # tolerance of fitter
-save_path          = "/data/user/reimann/2017_10/HPA/hpa_sensitivity_and_limit_bgd_wo_astro_2_19.pickle"
-plotting           = False
-unblind_value = 1.37962118438
+nsrc_list          = np.array([1,2,4,8,16,32,64,128,256,512,1024,2048]) # Number of Sources for which to calculate sensitivities
+nsrc
+unblind_value      = 1.37962118438
+
 
 # get background HPA trials
 with open(args.backgroung_HPA_trials, "r") as open_file:
     backgroung_HPA_trials = pickle.load(open_file)
-
 # fit the background distribution and extrapolate
 gamma_fit = make_gamma_fit(backgroung_HPA_trials)
 
-bgd_TS_vals =[gamma_fit[k][0] if k!="UL" else unblind_value for k in TS_val_keys]
-print bgd_TS_vals
-
 # Get mu -> flux factor
-mu2flux = get_mu_2_flux_factor(single_sens_folder)
+mu2flux = get_mu_2_flux_factor()
 print "Mu to flux conversion factor:", mu2flux
 
-flux = np.zeros((len(nsrc_list), len(bgd_TS_vals)))
-for i, nsrc in enumerate(nsrc_list):
-    # get data
-    files = get_files_for_nsrc(nsrc, sig_trial_path)
-    sig_trials = np.concatenate([np.load(f) for f in files])
-    # loop over sensitivity and discovery potential TS
-    for j, (val_i, beta_i) in enumerate(zip(bgd_TS_vals, beta)):
-        print nsrc, val_i
-        try:
-            # SENSITIVITY estimation
-            mu, w, b, b_err = sens_estimation(sig_trials, val_i, beta_i, eps)
-        except Exception as e:
-            print nsrc, e
-            continue
+# get data
+sig_trials = get_files_for_nsrc(nsrc, sig_trial_path)
 
-        flux[i,j] = mu * mu2flux
-        # needed for plotting
-        # nsrc sig_trials, val_i, beta_i, eps, mu, w, b, b_err
 
-# make the flux per source
-for i in range(np.shape(flux)[1]):
-    flux[:, i] /= nsrc_list
+results = []
+# loop over sensitivity and discovery potential TS
+bgd_TS_vals =[gamma_fit[k][0] if k!="UL" else unblind_value for k in TS_val_keys]
 
-# convert flux from GeV in TeV
-flux *= 1.e-3
+def __init__(self, CL=None, alpha=None, beta=None, TS_thres=None, disc_pot_like=True, label=None):
+res = sensitivity_result(TS_thres=bgd_TS_vals, beta=, flux_per_mu=mu2flux, source_model={"nsrc": nsrc})
 
-print flux
+for res in results:
+    try:
+        # SENSITIVITY estimation
+        mu, w, b, b_err = sens_estimation(sig_trials, res.TS_thres, res.beta)
+        res.mu = mu
+        res.success = True
+    except:
+        continue
 
-# put everything together
-my_result = {"nsrc": nsrc_list, "sens":flux[:, 0], "3sig":flux[:, 1], "5sig":flux[:,2], "UL": flux[:,3]}
+    # needed for plotting
+    # nsrc sig_trials, val_i, beta_i, eps, mu, w, b, b_err
 
-with open(save_path, "w") as open_file:
-    pickle.dump(my_result, open_file)
+save_path = "test_data/hpa_sensitivity_and_limit_bgd_wo_astro_2_19.pickle"
