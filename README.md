@@ -7,7 +7,7 @@ As a use case we implement the test for p-values testing neutrino fluxes from di
 
 This project dependes on the python packages
 
-* build-in: argparse, collections, cPickle, glob, os, re, time
+* build-in: argparse, collections, cPickle, glob, os, time
 * numpy
 * scipy
 * healpy
@@ -91,10 +91,17 @@ To run the analysis, the following steps have to be executed:
     * density: Density of sources. Scales the number of sources for source count distributions generated with FIRESONG.
 
 7. `calculate_sensitivity.py`
-    Will read in the background HPA TS and make a gamma fit to it. Will calculate sensitivity.
+    Fits the background HPA TS and extrapolates it. The result is used to calculate
+    the sensitvity for a source model by finding the signal strength that matches the
+    sensitivity, and discovery potential. If the unblinded TS value is given also the
+    upper limit is calculated. Results are stored as sensitivity_results.
 
     Parameters:
-    * 1
+    * background_HPA_trials: Path of file that contains background HPA trials.
+    * outfile: Path where the output file should be stored.
+    * signal_files: List of HPA signal trials files. Note that all files should represent one source model, except of changing flux strength.
+    * unblinded_value: If you have unblinded give the TS value here and upper limits are calculated.
+    * All remaining arguments are passed to describe the signal model.
 
 8. `unblind_result.py`
     Extracts the local warm spots from a skymap and calculates the HPA-TS value and compares it to background trials and
