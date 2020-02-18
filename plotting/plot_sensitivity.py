@@ -4,12 +4,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from matplotlib.colors import LogNorm
-from scipy.interpolate import UnivariateSpline
-
-import cPickle, os
 import numpy as np
+from scipy.interpolate import UnivariateSpline
+import cPickle as pickle
+
 import external_data as stefans_results
-from ps_analysis.plotting.hpa import HPA_sens_plot
+from hpa import HPA_sens_plot
 
 # reproduce stefans paper plot
 nsrc=2**(np.arange(12))
@@ -25,14 +25,14 @@ plt.ylim(1e-15, 1e-11)
 
 # stefans bug fixed version
 st_new = np.genfromtxt("external_data/flux_north.txt")
-st_new_spline_sens = UnivariateSpline(st_new[:,0], st_new[:,1], s=0, k=1) 
+st_new_spline_sens = UnivariateSpline(st_new[:,0], st_new[:,1], s=0, k=1)
 st_new_spline_disc = UnivariateSpline(st_new[:,0], st_new[:,2], s=0, k=1)
-st_new_spline_UL = UnivariateSpline(st_new[:,0], st_new[:,3], s=0, k=1) 
+st_new_spline_UL = UnivariateSpline(st_new[:,0], st_new[:,3], s=0, k=1)
 
 # my sensitivity
 with open("/data/user/reimann/2017_10/HPA/hpa_sensitivity.cPickle", "r") as open_file:
-    my_result = cPickle.load(open_file)
-    
+    my_result = pickle.load(open_file)
+
 nsrc = my_result["nsrc"]
 plot = HPA_sens_plot()
 
