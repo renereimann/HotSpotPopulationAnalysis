@@ -3,12 +3,25 @@
 This projects contains scripts to run a hotpot population analysis. By this statistical method it is tested if a population of small p-values exists in a set of p-value results which are non significant on their own.
 As a use case we implement the test for p-values testing neutrino fluxes from different directions in the sky.
 
+# Import dependencies
 
-This will explain how to run the scripts to get a HPA result.
+This project dependes on the python packages
 
-We need a set of all sky scans, as TS parametrization (instance of parameetrization_fit) and single PS signal trials (in the optimal case also some with very high TS values).
+* build-in: argparse, collections, cPickle, glob, os, re, time
+* numpy
+* scipy
+* healpy
+* matplotlib (for plotting)
+* cosmolopy (for plotting, Kowalski plot)
+* FIRESONG (for plotting, Kowalski plot)
 
-The procedure will start as following:
+# Analysis Chain
+
+This section explains how to run the scripts to get a HPA result.
+As input a set of all sky scans, as TS parametrization and single PS signal
+trials (in the optimal case also some with very high TS values) are needed.
+
+To run the analysis, the following steps have to be executed:
 
 1. get_warm_spots_from_skylab_all_sky_scans.py
 
@@ -81,7 +94,7 @@ The procedure will start as following:
     Will read in the background HPA TS and make a gamma fit to it. Will calculate sensitivity.
 
     Parameters:
-    *
+    * 1
 
 8. unblind_result.py
     Extracts the local warm spots from a skymap and calculates the HPA-TS value and compares it to background trials and
@@ -95,6 +108,9 @@ The procedure will start as following:
     * log10pVal_threshold: Give the -log10(p-value) above that spots should not be considerd. Default: 2.0.
     * min_ang_dist: Give the minimal angular distance allowed between two local warm spots. Units: degrees. Default: 1.
 
+9. (optional) several scripts for plotting can be found in `plotting/`
+
+Further scripts:
 * data_types.py                                 # classes with data types
 * SingleSpotTS2pValueParametrization.py         # class for TS -> pValue conversion
 * skylab_data.py                                # classes interacting with skylab
@@ -102,23 +118,11 @@ The procedure will start as following:
 * statistics.py                                 # functions, related to statistics
 * utils.py                                      # functions, classes
 
-
 * external_data/                                # Digitized Data from references
 
 * plotting/                                     # plot the stuff
 
 * test_data/                                    # Some data for testing the scripts
-
-
-Notes:
-    * We wondered why the expectation in the paper was cutting of. The difference is that the median was shown while we thought it would be the mean. The mean (also the expectation value) is still decreasing linearly.
-
-Import dependencies
--------------------
-
-import  argparse, collections, cPickle, glob, os, re, time (build-in)
-
-import numpy, scipy, healpy
 
 # add plotting for
 * poisson test (has been removed for now), counts above plot
@@ -127,3 +131,6 @@ import numpy, scipy, healpy
 * signal_trials, plot_ninj
 * background distribution fit: gamma_fit_to_histogram, gamma_fit_contour, gamma_fit_survival_plot
 * sensitivity estimation: ninj_vs_logP_plots, find_mu_plot, TS_hist_plot, histogram_observed_vs_expected, histogram_plocal_vs_ppost
+
+Notes:
+    * We wondered why the expectation in the paper was cutting of. The difference is that the median was shown while we thought it would be the mean. The mean (also the expectation value) is still decreasing linearly.
