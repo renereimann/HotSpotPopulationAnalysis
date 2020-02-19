@@ -1,19 +1,15 @@
 
-import argparse
-import glob
-import os
-import cPickle
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.colors as colors
-import matplotlib.lines as mlines
-import matplotlib
+from plot_utils import *
+
 import numpy as np
 import scipy.integrate
-from scipy.interpolate import UnivariateSpline
 from scipy.special import gamma, gammaincc
+
+########################################################################
+
 try:
-    from FIRESONG.Evolution import Evolution, RedshiftDistribution, StandardCandleSources, cosmology, Ntot
+    from FIRESONG.Evolution import StandardCandleSources, cosmology
+    import argparse
 except:
     pass
 
@@ -38,45 +34,7 @@ def get_luminosity_from_diffuse(fluxnorm = 0.9e-8,
 
     return luminosity
 
-def get_Ntotal_from_density(density = 1e-9,
-                            evol="HB2006SFR",
-                            zmax=10.):
-
-    options = argparse.Namespace( density    = density,
-                                  Evolution  = evol,
-                                  Transient  = False,
-                                  zmax       = zmax)
-    return Ntot(options)
-
 ########################################################################
-
-class AnyObject(object):
-    def __init__(self, colors=["r", "y", "g"], line=False, **kwargs):
-        self.colors = colors
-        self.line = line
-        self.kwargs = kwargs
-
-class AnyObjectHandler(object):
-    def legend_artist(self, legend, orig_handle, fontsize, handlebox):
-        x0, y0 = handlebox.xdescent, handlebox.ydescent
-        width, height = handlebox.width, handlebox.height
-        colors = orig_handle.colors
-        step = 0.5/len(colors)
-        patches = []
-        for i, c in enumerate(colors):
-            j = len(colors)-i
-            patch = mpatches.Rectangle([x0, y0+height*(0.5-j*step)], width, height*2*j*step,
-                                       facecolor=c, lw=0, transform=handlebox.get_transform())
-            patches.append(patch)
-        if orig_handle.line:
-            print("will draw the line")
-            print(orig_handle.kwargs)
-            patches.append( mlines.Line2D([x0, x0+width], [y0+0.5*height, y0+0.5*height], **(orig_handle.kwargs)) )
-
-        for patch in patches:
-            handlebox.add_artist(patch)
-
-        return patches
 
 def add_arrow(pos_x, pos_y, color="gray", marker="s", minor_per_major = 10, tick_size=0.1, size=50, fontsize=16, ax_length=1e-2):
     fig = plt.gcf()
@@ -270,7 +228,7 @@ class kowalsky_plot(object):
         if mode == "perc":
             kwargs = {}
             if log:
-                kwargs["norm"] = colors.LogNorm(vmin=vmin, vmax=vmax)
+                kwargs["norm"] = LogNorm(vmin=vmin, vmax=vmax)
             else:
                 kwargs["vmin"] = vmin
                 kwargs["vmax"] = vmax
@@ -298,7 +256,7 @@ class kowalsky_plot(object):
         handle, = plt.scatter(lumi_dens[:,0], lumi_dens[:,1], marker="x", s=30, color="k")
         return handle, "failed"
 
-    def plot(self, title=None, on_plot=True, right_axis=True, figsize=(6.4, 4.8), fontsize=None, fig=None):
+    def plot(self, title=None, on_plot=True, figsize=(6.4, 4.8), fontsize=None, fig=None):
         if fontsize is not None:
             matplotlib.rcParams["font.size"] = fontsize
         if fig is None:
@@ -328,13 +286,6 @@ class kowalsky_plot(object):
         ax.set_xscale("log")
         ax.set_xlabel(r"$L_{\nu_\mu+\bar{\nu}_\mu}^\mathrm{eff}\,\left[\frac{\mathrm{erg}}{\mathrm{yr}}\right]$")
 
-        if right_axis:
-            ax2 = ax.twinx()
-            ymin, ymax = ax.get_ylim()
-            ax2.set_ylim([get_Ntotal_from_density(density=ymin), get_Ntotal_from_density(density=ymax)])
-            ax2.set_yscale("log")
-            ax2.set_ylabel(r'$N_\mathrm{sources}$ assuming SFR')
-
         ax3 = ax.twiny()
         xmin, xmax = ax.get_xlim()
         ax3.set_xlim([xmin/(365.*24.*3600.), xmax/(365.*24.*3600.)])
@@ -351,103 +302,3 @@ class kowalsky_plot(object):
         plt.savefig(savepath, bbox_inches='tight', dpi=600)
         plt.savefig(savepath.replace(".png", "_low_reso.png"), bbox_inches='tight', dpi=72)
         plt.savefig(savepath.replace(".png", ".pdf"), bbox_inches='tight')
-
-########################################################################
-
-class TS_dist(object):
-    def __init__(self, lumi, density, np=True):
-        self.lumi = lumi
-        self.density = density
-        self.TS = None
-        self.np = np
-
-    def add(self, path):
-        if not float(os.path.basename(path).split("_")[10]) == self.density:
-            return
-        try:
-            if self.np:
-                temp = np.load(path)
-            else:
-                with open(path, "r") as open_file:
-                    temp2 = cPickle.load(open_file)
-                if type(temp2[0]) == np.ndarray:
-                    temp2 = [np.sum(t) for t in temp2]
-                temp = np.zeros(len(temp2), dtype=[("TS", np.float32)])
-                temp["TS"] = temp2
-            if self.TS is None:
-                self.TS = np.atleast_1d(temp)
-            else:
-                self.TS = np.concatenate([self.TS, np.atleast_1d(temp)])
-        except Exception as e:
-            print e
-            # raise
-
-class lumi_set(object):
-    def __init__(self, path, np=True, prefix=""):
-        print os.path.basename(path)
-        self.lumi_path = path
-        extension = "*.npy" if np else "*.cPickle"
-        self.files = glob.glob(os.path.join(path,prefix+extension))
-
-        self.lumi = os.path.basename(path).split("_")[1]
-        self.densities = set([float(os.path.basename(f).split("_")[10]) for f in self.files])
-
-        self.TSs = [TS_dist(self.lumi, d, np=np) for d in self.densities]
-        for f in self.files:
-            for ts in self.TSs:
-                ts.add(f)
-
-def get_quantile(lf_sets, quantile=10, key="logP"):
-    coords = []
-    for lf in lf_sets:
-        for TS in lf.TSs:
-            if len(TS.TS) < 5:
-                continue
-            if key=="ntrials":
-                quant = len(TS.TS)
-            else:
-                quant =  np.percentile( TS.TS[key], quantile)
-            coords.append((float(TS.lumi), float(TS.density), quant))
-    coords = np.array(coords)
-    return coords
-
-def lumi_UL(coords, TS_obs, cutoff=3e47):
-
-    lumis = []
-    ULs = []
-
-    # loop over luminosities
-    for l in set(coords[:,0]):
-        # just select one luminosity slice
-        mask = coords[:,0] == l
-        # sort by density otherwise spline gives nan
-        idx = np.argsort(coords[:,1][mask])
-
-        # spline TS vs. density
-        dens = coords[:,1][mask][idx]
-        TS = coords[:,2][mask][idx]
-
-        if len(dens) <= 1: continue
-
-        spl = UnivariateSpline(dens, TS, k=1, s=0)
-
-        # Find UL point by two iteration scan
-        UL = lambda density: (spl(density) - TS_obs)**2
-
-        dens_scan_iter1 = np.logspace(np.log10(dens.min()), np.log10(dens.max()), 100)
-        min_iter1 = dens_scan_iter1[np.argmin(UL(dens_scan_iter1))]
-
-        dens_scan_iter2 = np.logspace(np.log10(min_iter1)-0.1, np.log10(min_iter1)+0.1, 100)
-        min_iter2 = dens_scan_iter2[np.argmin(UL(dens_scan_iter2))]
-
-        lumis.append(l)
-        ULs.append(min_iter2)
-
-    idx = np.argsort(lumis)
-    lumis = np.array(lumis)[idx]
-    ULs = np.array(ULs)[idx]
-    mask = lumis > cutoff
-    lumis = lumis[mask]
-    ULs = ULs[mask]
-
-    return lumis, ULs
