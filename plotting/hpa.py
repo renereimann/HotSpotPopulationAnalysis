@@ -1,20 +1,25 @@
 #!/usr/bin/env python
 
+from plot_utils import *
 
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
-import matplotlib.patches as mpatches
-from matplotlib.colors import LogNorm
-import numpy as np
-from scipy.stats import poisson, gamma
 import os
 import cPickle
+import numpy as np
+from scipy.stats import poisson, gamma
 from statistics import poisson_percentile
-from kowalski import AnyObject, AnyObjectHandler
-COLOR_MAP="jet"
 
-class ks_test_poisson_parametrization_plot(object):
+# add plotting for
+#* BackgroundLocalWarmSpotPool, plot_pool, histogram of self.bgd_pool
+#* signal pool_ plot_sinDec_distribution, plot_mu_2_flux
+#* signal_trials, plot_ninj
+
+#Notes:
+#    * We wondered why the expectation in the paper was cutting of. The difference is that the median was shown while we thought it would be the mean. The mean (also the expectation value) is still decreasing linearly.
+
+
+# generate parametrization
+
+class ks_test_poisson_parametrization_plot(base_plot):
     """ Plots the ks-test probability for poissonian fit to data.
     You have to give the parametrization, that is a list of tuples, where tuples is (thres, mean, ks_poisson, ks_binom).
     If hold_fig is True will be plotted in previous figure.
@@ -27,11 +32,6 @@ class ks_test_poisson_parametrization_plot(object):
         If plot_path is given plot will be saved and closed."""
 
         self.parametrization = parametrization
-
-        self.pre_calc()
-
-    def pre_calc(self):
-        pass
 
     def plot(self, fig=None, savepath=None):
         if fig is None:
@@ -46,16 +46,6 @@ class ks_test_poisson_parametrization_plot(object):
         plt.minorticks_on()
         plt.grid(b="off", which="minor")
         plt.ylim(ymin=1e-4)
-
-        if not savepath is None:
-            if not os.path.exists(os.path.dirname(savepath)):
-                raise IOError("Directory does not exists where plot should be saved! You gave the savepath: {}".format(savepath))
-            plt.savefig(savepath.replace(".png", ".pdf"), bbox_inches='tight')
-            plt.savefig(savepath, bbox_inches='tight', dpi=600)
-            plt.savefig(savepath.replace(".png", "_low_reso.png"), bbox_inches='tight', dpi=72)
-            plt.close()
-
-        return fig
 
 class counts_above_plot(object):
     """ These are the plots from poisson test """
@@ -102,138 +92,6 @@ class counts_above_plot(object):
 class pseudo_exp_plot(object):
     """ """
 
-    def __init__(self, expectation, trial):
-        """ expectation object and list of p-values"""
-
-        self.expectation = expectation
-        self.trial = trial
-
-        self.pre_calc()
-
-    def pre_calc(self):
-        self.xs = np.linspace(2, 7, 1000)
-
-        self.ys = self.expectation(self.xs)
-        self.cl = []
-        for cl in [0.6827, 0.9545, 0.9973]:
-            upper = poisson(self.expectation(self.xs)).ppf(1.-(1.-cl)/2.)
-            lower = poisson(self.expectation(self.xs)).ppf((1.-cl)/2.)
-            self.cl.append((lower, upper))
-
-        self.acum = np.array([ np.sum(self.trial > p) for p in self.xs ])
-
-
-        self.pVal = np.concatenate([np.power(10, -self.expectation.poisson_test_all_pVals(self.trial)), [1]])
-
-    def plot(self, fig=None, savepath=None, preliminary=True):
-        if fig is None:
-            fig = plt.figure() # figsize=(16,9)
-
-        ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])  # left, bottom, width, height
-
-        # expectation & CL bands
-        plt.plot(self.xs, self.ys, label="Expectation", lw=2)
-        for lower, upper in self.cl:
-            plt.fill_between(self.xs, upper, lower, alpha=0.2)
-
-        # pseudo-exp. result
-        plt.plot(self.xs, self.acum, drawstyle="steps-post", color="k", label="observed", lw=2)
-
-        # labeling
-        ax1.set_xticklabels([2.0, 3.0, 4.0, 5.0, 6.0, 7.0], visible=False)
-        plt.ylabel("#HS $ \geq -\log_{10}(p_{\mathrm{local}})$")
-        plt.ylim(ymin=0.02)
-        plt.yscale("log", nonposy="clip")
-        plt.minorticks_on()
-        plt.grid(b="off", which="minor")
-        l = plt.legend(loc="best")
-        if preliminary:
-            l.set_title("IceCube Preliminary")
-            plt.setp(l.get_title(), color="r")
-
-        ax2 = fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
-
-        # pseudo-p-values
-        ax2.plot(np.concatenate([self.trial, [self.trial[-1]]]), self.pVal, color="k", lw=2)
-
-        # labeling
-        ax2.set_xlabel(r"$-\log_{10}(p_{\mathrm{local}})$")
-        ax2.set_xticklabels([2.0, 3.0, 4.0, 5.0, 6.0, 7.0], visible=True)
-        plt.ylabel("p-value")
-        plt.yscale("log")
-        plt.minorticks_on()
-        plt.grid(b="off", which="minor")
-
-        self.save(savepath)
-        return fig
-
-    def save(self, savepath):
-        if not savepath is None:
-            if not os.path.exists(os.path.dirname(savepath)):
-                raise IOError("Directory does not exists where plot should be saved! You gave the savepath: {}".format(savepath))
-            plt.savefig(savepath.replace(".png", ".pdf"), bbox_inches='tight')
-            plt.savefig(savepath, bbox_inches='tight', dpi=600)
-            plt.savefig(savepath.replace(".png", "_low_reso.png"), bbox_inches='tight', dpi=72)
-            plt.close()
-
-class pseudo_exp_plot_paper(pseudo_exp_plot):
-    def plot(self, savepath=None, local_opt=None, colors=([0.5,0.5, 1.0], [0.25,0.25,0.75], [0,0,0.5]), pLocal_min=None, pThres_max=None, fig=None):
-        if fig is None:
-            fig = plt.figure() # figsize=(16,9)
-
-        ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
-        ax2 = fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
-
-        # expectation & CL bands
-        min_count = 0.02
-        eps = min_count/100.
-        ax1.fill_between(self.xs, np.maximum(min_count+eps, self.cl[2][1]), np.maximum(min_count+eps, self.cl[2][0]), alpha=1.0, color=colors[0])
-        ax1.fill_between(self.xs, np.maximum(min_count+eps, self.cl[1][1]), np.maximum(min_count+eps, self.cl[1][0]), alpha=1.0, color=colors[1])
-        ax1.fill_between(self.xs, np.maximum(min_count+eps, self.cl[0][1]), np.maximum(min_count+eps, self.cl[0][0]), alpha=1.0, color=colors[2])
-        ax1.plot(self.xs, self.ys, label="Expectation", lw=1, ls="--", color="k", dashes=(3,2))
-
-        # pseudo-exp. result
-        line_obs = ax1.plot(self.xs, self.acum, drawstyle="steps-post", color="k", lw=1, label="blub")
-
-        # pseudo-p-values
-        ax2.plot(np.concatenate([self.trial, [self.trial[-1]]]), self.pVal, color="k", lw=1)
-
-        if local_opt is not None:
-            line_opt = ax1.axvline(local_opt, ls=":", color="k", lw=1, label="bla")
-            ax2.axvline(local_opt, ls=":", color="k", lw=1)
-
-        # labeling
-        for xlabel_i in ax1.get_xticklabels():
-            xlabel_i.set_visible(False)
-        #ax1.set_xticklabels(ax1.get_xticklabels(), visible=False)# [2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
-        #ax2.set_xticklabels(ax2.get_xticklabels(), visible=True) #[2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
-        ax2.set_xlabel(r"$-\log_{10}(p_\mathrm{thres})$")
-        if pThres_max is not None:
-            ax2.set_xlim([2,pThres_max])
-
-        ax1.set_ylabel("$N(\leq p_\mathrm{thres})$")
-        ax1.set_yscale("log", nonposy="clip")
-        ax1.set_ylim(ymin=min_count)
-        ax1.minorticks_on()
-        ax1.grid(b="off", which="minor")
-        handles = [AnyObject(colors, line=True, color="k", ls="--", lw=1, dashes=(3,2)), line_obs[0]]
-        labels = ["Expectation", "Observed"]
-        if local_opt is not None:
-            handles.append(line_opt)
-            labels.append("Largest Excess")
-        ax1.legend(handles, labels, loc="best", handler_map={AnyObject: AnyObjectHandler()})
-
-        ax2.set_ylabel("$p_\mathrm{poisson}$")
-        ax2.set_yscale("log", nonposy="clip")
-        if pLocal_min is not None:
-            ax2.set_ylim([pLocal_min, 1e0])
-        ax2.minorticks_on()
-        ax2.grid(b="off", which="minor")
-
-        self.save(savepath)
-        return fig
-
-class pseudo_exp_plot_paper_V2(pseudo_exp_plot):
     def __init__(self, expectation):
         """ expectation object and list of p-values"""
 
@@ -321,6 +179,16 @@ class pseudo_exp_plot_paper_V2(pseudo_exp_plot):
         self.save(savepath)
         return fig
 
+    def save(self, savepath):
+        if not savepath is None:
+            if not os.path.exists(os.path.dirname(savepath)):
+                raise IOError("Directory does not exists where plot should be saved! You gave the savepath: {}".format(savepath))
+            plt.savefig(savepath.replace(".png", ".pdf"), bbox_inches='tight')
+            plt.savefig(savepath, bbox_inches='tight', dpi=600)
+            plt.savefig(savepath.replace(".png", "_low_reso.png"), bbox_inches='tight', dpi=72)
+            plt.close()
+
+# background fit
 
 class gamma_fit_to_histogram(object):
     """ fit to histogram """
@@ -463,6 +331,8 @@ class gamma_fit_survival_plot(object):
             plt.close()
 
         return fig
+
+# from sens calculation
 
 class ninj_vs_logP_plots(object):
     def __init__(self, nsrc, trials, **kwargs):
@@ -759,83 +629,6 @@ class histogram_plocal_vs_ppost(object):
 
         return fig
 
-class HPA_sens_plot(object):
-    def __init__(self, xmin=1, xmax=1e3):
-        self.xmin = xmin
-        self.xmax = xmax
-        self.ymin = None
-        self.ymax = None
-
-        self.lines = []
-        self.regions = []
-
-    def _update_ylim(self, y):
-        ymin = 10**np.floor(np.log10(np.min(y)))
-        ymax = 10**np.ceil( np.log10(np.max(y)))
-        if self.ymin == None or self.ymin > ymin: self.ymin=ymin
-        if self.ymax == None or self.ymax < ymax: self.ymax=ymax
-
-    def add_line(self, x, y, label, mode, color, no_marker=False):
-        line = {}
-        line["x"] = x
-        line["y"] = y
-        line["label"] = label
-        line["ls"] = "--" if mode=="sens" else ":" if mode=="theo" else "-"
-        line["marker"] = "o" if mode != "theo" and no_marker==False else ""
-        line["color"] = color
-        line["lw"] = 2 if mode != "UL" else 4
-        self.lines.append(line)
-        self._update_ylim(line["y"])
-
-    def add_spline(self, spline, label, mode, color):
-        x = np.logspace(np.log10(self.xmin), np.log10(self.xmax), 1000)
-        self.add_line(x, spline(x), label, mode, color, no_marker=True)
-
-    def add_single_ps_flux(self, min_flux, max_flux, label, color="lightgray"):
-        region = {}
-        region["min"] = min_flux
-        region["max"] = max_flux
-        region["label"] = label
-        region["color"] = color
-        self.regions.append(region)
-
-    def plot(self, fig=None, savepath=None, preliminary=True):
-        if fig is None:
-            fig = plt.figure(figsize=(8,6))
-        ax = fig.gca()
-
-        for line in self.lines:
-            ax.loglog(line["x"], line["y"], label=line["label"], marker=line["marker"], linestyle=line["ls"], color=line["color"], lw=line["lw"])
-
-        for region in self.regions:
-            plt.axhspan(region["min"], region["max"], facecolor=region["color"], alpha=0.3, lw=0)
-            plt.text(9e2, 0.9*region["max"], region["label"], horizontalalignment="right", verticalalignment="top")
-
-        # labeling
-        ax.set_xlabel("Number of sources")
-        ax.set_ylabel(r"$E^2\frac{\partial\phi_\mathrm{Source}}{\partial E}"
-                      r"\,/\,"
-                      r"\left(\mathrm{TeV}\,/\,\mathrm{cm}^2\,\mathrm{s}\right)$")
-        ax.set_ylim(self.ymin, self.ymax)
-        ax.minorticks_on()
-        ax.grid(b="off", which="minor")
-
-        l = ax.legend(markerscale=0, loc="best")
-        if preliminary:
-            l.set_title("IceCube Preliminary")
-        plt.setp(l.get_title(), color="r")
-
-        plt.tight_layout()
-
-        if not savepath is None:
-            if not os.path.exists(os.path.dirname(savepath)):
-                raise IOError("Directory does not exists where plot should be saved! You gave the savepath: {}".format(savepath))
-            plt.savefig(savepath.replace(".png", ".pdf"), bbox_inches='tight')
-            plt.savefig(savepath, bbox_inches='tight', dpi=600)
-            plt.savefig(savepath.replace(".png", "_low_reso.png"), bbox_inches='tight', dpi=72)
-            plt.close()
-
-        return fig
 
 if __name__ == "__main__":
 
