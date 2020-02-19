@@ -1,15 +1,89 @@
 #!/usr/bin/env python
 
-import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
-from matplotlib.colors import LogNorm
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 import cPickle as pickle
 
 import external_data as stefans_results
-from hpa import HPA_sens_plot
+class HPA_sens_plot(object):
+    def __init__(self, xmin=1, xmax=1e3):
+        self.xmin = xmin
+        self.xmax = xmax
+        self.ymin = None
+        self.ymax = None
+
+        self.lines = []
+        self.regions = []
+
+    def _update_ylim(self, y):
+        ymin = 10**np.floor(np.log10(np.min(y)))
+        ymax = 10**np.ceil( np.log10(np.max(y)))
+        if self.ymin == None or self.ymin > ymin: self.ymin=ymin
+        if self.ymax == None or self.ymax < ymax: self.ymax=ymax
+
+    def add_line(self, x, y, label, mode, color, no_marker=False):
+        line = {}
+        line["x"] = x
+        line["y"] = y
+        line["label"] = label
+        line["ls"] = "--" if mode=="sens" else ":" if mode=="theo" else "-"
+        line["marker"] = "o" if mode != "theo" and no_marker==False else ""
+        line["color"] = color
+        line["lw"] = 2 if mode != "UL" else 4
+        self.lines.append(line)
+        self._update_ylim(line["y"])
+
+    def add_spline(self, spline, label, mode, color):
+        x = np.logspace(np.log10(self.xmin), np.log10(self.xmax), 1000)
+        self.add_line(x, spline(x), label, mode, color, no_marker=True)
+
+    def add_single_ps_flux(self, min_flux, max_flux, label, color="lightgray"):
+        region = {}
+        region["min"] = min_flux
+        region["max"] = max_flux
+        region["label"] = label
+        region["color"] = color
+        self.regions.append(region)
+
+    def plot(self, fig=None, savepath=None, preliminary=True):
+        if fig is None:
+            fig = plt.figure(figsize=(8,6))
+        ax = fig.gca()
+
+        for line in self.lines:
+            ax.loglog(line["x"], line["y"], label=line["label"], marker=line["marker"], linestyle=line["ls"], color=line["color"], lw=line["lw"])
+
+        for region in self.regions:
+            plt.axhspan(region["min"], region["max"], facecolor=region["color"], alpha=0.3, lw=0)
+            plt.text(9e2, 0.9*region["max"], region["label"], horizontalalignment="right", verticalalignment="top")
+
+        # labeling
+        ax.set_xlabel("Number of sources")
+        ax.set_ylabel(r"$E^2\frac{\partial\phi_\mathrm{Source}}{\partial E}"
+                      r"\,/\,"
+                      r"\left(\mathrm{TeV}\,/\,\mathrm{cm}^2\,\mathrm{s}\right)$")
+        ax.set_ylim(self.ymin, self.ymax)
+        ax.minorticks_on()
+        ax.grid(b="off", which="minor")
+
+        l = ax.legend(markerscale=0, loc="best")
+        if preliminary:
+            l.set_title("IceCube Preliminary")
+        plt.setp(l.get_title(), color="r")
+
+        plt.tight_layout()
+
+        if not savepath is None:
+            if not os.path.exists(os.path.dirname(savepath)):
+                raise IOError("Directory does not exists where plot should be saved! You gave the savepath: {}".format(savepath))
+            plt.savefig(savepath.replace(".png", ".pdf"), bbox_inches='tight')
+            plt.savefig(savepath, bbox_inches='tight', dpi=600)
+            plt.savefig(savepath.replace(".png", "_low_reso.png"), bbox_inches='tight', dpi=72)
+            plt.close()
+
+        return fig
+
 
 # reproduce stefans paper plot
 nsrc=2**(np.arange(12))
