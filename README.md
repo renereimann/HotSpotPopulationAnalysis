@@ -130,14 +130,3 @@ Further scripts:
 * `plotting/`                                     # plot the stuff
 
 * `test_data/`                                    # Some data for testing the scripts
-
-# add plotting for
-* poisson test (has been removed for now), counts above plot
-* BackgroundLocalWarmSpotPool, plot_pool, histogram of self.bgd_pool
-* signal pool_ plot_sinDec_distribution, plot_mu_2_flux
-* signal_trials, plot_ninj
-* background distribution fit: gamma_fit_to_histogram, gamma_fit_contour, gamma_fit_survival_plot
-* sensitivity estimation: ninj_vs_logP_plots, find_mu_plot, TS_hist_plot, histogram_observed_vs_expected, histogram_plocal_vs_ppost
-
-Notes:
-    * We wondered why the expectation in the paper was cutting of. The difference is that the median was shown while we thought it would be the mean. The mean (also the expectation value) is still decreasing linearly.
